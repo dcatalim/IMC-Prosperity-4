@@ -1,0 +1,4 @@
+jsonpickle
+numpy
+pandas
+matplotlib
