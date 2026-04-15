@@ -238,35 +238,41 @@ class Trader:
                 result[product] = orders
 
             elif product == "INTARIAN_PEPPER_ROOT":
+                best_bid = max(order_depth.buy_orders.keys()) if len(order_depth.buy_orders) > 0 else None
+                best_ask = min(order_depth.sell_orders.keys()) if len(order_depth.sell_orders) > 0 else None
+                mid_price = (best_bid + best_ask) / 2 if (best_bid and best_ask) else (best_bid or best_ask or 10000)
+
                 # 1. Calculate Expected Fair Value
-                fair_value = 10000 + (state.timestamp * 0.001)
+                implied_base = mid_price - state.timestamp * 0.001
+                base_price = round(implied_base / 1000) * 1000
+                fair_value = base_price + (state.timestamp * 0.001)
                 
                 # Position management
                 current_pos = state.position.get(product, 0)
                 POSITION_LIMIT = 80
                 
                 # Desired Quotes
-                my_bid = math.floor(fair_value) - 1
-                my_ask = math.ceil(fair_value) + 1
+                my_bid = math.floor(fair_value) - 2
+                my_ask = math.ceil(fair_value) + 2
                 
                 # 2. Statistical Arbitrage: Clear market orders that are mispriced
                 if len(order_depth.sell_orders) != 0:
-                    best_ask, best_ask_amount = list(order_depth.sell_orders.items())[0]
-                    if best_ask < fair_value:
-                        # Buy undervalued volume
-                        buy_vol = min(-best_ask_amount, POSITION_LIMIT - current_pos)
-                        if buy_vol > 0:
-                            orders.append(Order(product, best_ask, buy_vol))
-                            current_pos += buy_vol
+                    for ask in sorted(order_depth.sell_orders.keys()):
+                        if ask < fair_value:
+                            ask_amount = order_depth.sell_orders[ask]
+                            buy_vol = min(-ask_amount, POSITION_LIMIT - current_pos)
+                            if buy_vol > 0:
+                                orders.append(Order(product, ask, buy_vol))
+                                current_pos += buy_vol
                 
                 if len(order_depth.buy_orders) != 0:
-                    best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
-                    if best_bid > fair_value:
-                        # Sell overvalued volume
-                        sell_vol = max(-best_bid_amount, -POSITION_LIMIT - current_pos)
-                        if sell_vol < 0:
-                            orders.append(Order(product, best_bid, sell_vol))
-                            current_pos += sell_vol
+                    for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
+                        if bid > fair_value:
+                            bid_amount = order_depth.buy_orders[bid]
+                            sell_vol = max(-bid_amount, -POSITION_LIMIT - current_pos)
+                            if sell_vol < 0:
+                                orders.append(Order(product, bid, sell_vol))
+                                current_pos += sell_vol
 
                 # 3. Market Making: Post resting limit orders around the fair value
                 buy_volume = POSITION_LIMIT - current_pos
@@ -278,6 +284,7 @@ class Trader:
                     orders.append(Order(product, my_ask, sell_volume))
 
                 result[product] = orders
+
 
         traderData = jsonpickle.encode(trader_data)
         logger.flush(state, result, conversions, traderData)
