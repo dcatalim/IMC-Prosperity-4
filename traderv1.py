@@ -30,7 +30,7 @@ class Trader:
         for product, order_depth in state.order_depths.items():
             orders: List[Order] = []
 
-            if product == "EMERALDS":
+            if product == "INTARIAN_PEPPER_ROOT":
                 fair_price = 10000
                 position = state.position.get(product, 0)
                 position_limit = 80
@@ -71,7 +71,7 @@ class Trader:
                     print("QUOTE SELL", str(remaining_sell_capacity) + "x", quote_sell)
                     orders.append(Order(product, quote_sell, -remaining_sell_capacity))
 
-            elif product == "TOMATOES":
+            elif product == "ASH_COATED_OSMIUM":
                 position = state.position.get(product, 0)
                 position_limit = 60
 
@@ -86,13 +86,13 @@ class Trader:
                 else:
                     mid_price = 5000.0
 
-                tomatoes_state = trader_data.get("tomatoes", {})
-                ema = tomatoes_state.get("ema", mid_price)
+                osmium_state = trader_data.get("ASH_COATED_OSMIUM", {})
+                ema = osmium_state.get("ema", mid_price)
                 alpha = 0.18
                 ema = alpha * mid_price + (1 - alpha) * ema
 
-                tomatoes_state["ema"] = ema
-                trader_data["tomatoes"] = tomatoes_state
+                osmium_state["ema"] = ema
+                trader_data["ASH_COATED_OSMIUM"] = osmium_state
 
                 fair_price = int(round(ema))
                 spread = max(2, int(round(abs(mid_price - ema) * 0.35)) + 1)
