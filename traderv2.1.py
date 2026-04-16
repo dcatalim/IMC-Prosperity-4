@@ -21,6 +21,7 @@ import json
 # https://jmerle.github.io/imc-prosperity-3-visualizer/
 # https://prosperity.equirag.com/
 
+
 class Logger:
     def __init__(self) -> None:
         self.logs = ""
@@ -189,84 +190,146 @@ class Trader:
             if product == "ASH_COATED_OSMIUM":
                 order_depth: OrderDepth = state.order_depths[product]
                 orders: List[Order] = []
-                acceptable_price = 10000
+                fair_price = 10000
                 position = state.position.get(product, 0)
                 position_limit = 80
+                rebalance_threshold = 50
+                posted_buy = 0
+                posted_sell = 0
 
-                # 1. Take liquidity (Cross the spread if prices are favorable)
+                # 1) Take favorable liquidity with positive edge vs fair value.
                 for ask in sorted(order_depth.sell_orders.keys()):
                     ask_amount = order_depth.sell_orders[ask]
-                    if int(ask) <= acceptable_price:
+                    if int(ask) < fair_price:
                         trade_volume = min(-ask_amount, position_limit - position)
                         if trade_volume > 0:
-                            logger.print(f"QUOTE BUY {trade_volume}x {ask}")
+                            logger.print(f"TAKE BUY {trade_volume}x {ask}")
                             orders.append(Order(product, ask, trade_volume))
                             position += trade_volume
+                            posted_buy += trade_volume
 
                 for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
                     bid_amount = order_depth.buy_orders[bid]
-                    if int(bid) >= acceptable_price:
+                    if int(bid) > fair_price:
                         trade_volume = min(bid_amount, position + position_limit)
                         if trade_volume > 0:
-                            logger.print(f"QUOTE SELL {trade_volume}x {bid}")
+                            logger.print(f"TAKE SELL {trade_volume}x {bid}")
                             orders.append(Order(product, bid, -trade_volume))
                             position -= trade_volume
+                            posted_sell += trade_volume
 
-                # 2. Provide liquidity (Market Make to capture the spread)
-                best_bid = max(order_depth.buy_orders.keys()) if len(order_depth.buy_orders) > 0 else None
-                best_ask = min(order_depth.sell_orders.keys()) if len(order_depth.sell_orders) > 0 else None
+                # 2) If inventory is too skewed, flatten at fair value to free risk.
+                if position > rebalance_threshold:
+                    flatten_size = position
+                    remaining_sell_capacity = position_limit + position - posted_sell
+                    flatten_size = min(flatten_size, max(0, remaining_sell_capacity))
+                    if flatten_size > 0:
+                        logger.print(f"REBALANCE SELL {flatten_size}x {fair_price}")
+                        orders.append(Order(product, fair_price, -flatten_size))
+                        posted_sell += flatten_size
 
-                quote_buy_price = acceptable_price - 1
+                elif position < -rebalance_threshold:
+                    flatten_size = -position
+                    remaining_buy_capacity = position_limit - position - posted_buy
+                    flatten_size = min(flatten_size, max(0, remaining_buy_capacity))
+                    if flatten_size > 0:
+                        logger.print(f"REBALANCE BUY {flatten_size}x {fair_price}")
+                        orders.append(Order(product, fair_price, flatten_size))
+                        posted_buy += flatten_size
+
+                # 3) Provide passive liquidity by overbidding/undercutting with edge.
+                best_bid = (
+                    max(order_depth.buy_orders.keys())
+                    if len(order_depth.buy_orders) > 0
+                    else None
+                )
+                best_ask = (
+                    min(order_depth.sell_orders.keys())
+                    if len(order_depth.sell_orders) > 0
+                    else None
+                )
+
+                quote_buy_price = fair_price - 1
                 if best_bid is not None:
-                    quote_buy_price = min(acceptable_price - 1, best_bid + 1)
-                
-                quote_sell_price = acceptable_price + 1
-                if best_ask is not None:
-                    quote_sell_price = max(acceptable_price + 1, best_ask - 1)
+                    quote_buy_price = min(fair_price - 1, best_bid + 1)
 
-                remaining_buy_capacity = position_limit - position
-                remaining_sell_capacity = position_limit + position
+                quote_sell_price = fair_price + 1
+                if best_ask is not None:
+                    quote_sell_price = max(fair_price + 1, best_ask - 1)
+
+                remaining_buy_capacity = position_limit - position - posted_buy
+                remaining_sell_capacity = position_limit + position - posted_sell
 
                 if remaining_buy_capacity > 0:
-                    logger.print(f"QUOTE BUY {remaining_buy_capacity}x {quote_buy_price}")
-                    orders.append(Order(product, quote_buy_price, remaining_buy_capacity))
+                    logger.print(
+                        f"PASSIVE BUY {remaining_buy_capacity}x {quote_buy_price}"
+                    )
+                    orders.append(
+                        Order(product, quote_buy_price, remaining_buy_capacity)
+                    )
 
                 if remaining_sell_capacity > 0:
-                    logger.print(f"QUOTE SELL {remaining_sell_capacity}x {quote_sell_price}")
-                    orders.append(Order(product, quote_sell_price, -remaining_sell_capacity))
+                    logger.print(
+                        f"PASSIVE SELL {remaining_sell_capacity}x {quote_sell_price}"
+                    )
+                    orders.append(
+                        Order(product, quote_sell_price, -remaining_sell_capacity)
+                    )
 
                 result[product] = orders
 
             if product == "INTARIAN_PEPPER_ROOT":
-                best_bid = max(order_depth.buy_orders.keys()) if len(order_depth.buy_orders) > 0 else None
-                best_ask = min(order_depth.sell_orders.keys()) if len(order_depth.sell_orders) > 0 else None
-                mid_price = (best_bid + best_ask) / 2 if (best_bid and best_ask) else (best_bid or best_ask or 10000)
+                best_bid = (
+                    max(order_depth.buy_orders.keys())
+                    if len(order_depth.buy_orders) > 0
+                    else None
+                )
+                best_ask = (
+                    min(order_depth.sell_orders.keys())
+                    if len(order_depth.sell_orders) > 0
+                    else None
+                )
+                mid_price = (
+                    (best_bid + best_ask) / 2
+                    if (best_bid and best_ask)
+                    else (best_bid or best_ask or 10000)
+                )
 
                 # 1. Calculate Expected Fair Value
                 implied_base = mid_price - state.timestamp * 0.001
                 base_price = round(implied_base / 1000) * 1000
                 fair_value = base_price + (state.timestamp * 0.001)
-                
+
                 # Position management
                 current_pos = state.position.get(product, 0)
                 POSITION_LIMIT = 80
-                TARGET_HOLD = 40
+                TARGET_HOLD = 65
+                MM_SPREAD = 2
+                MM_BASE_SIZE = 12
 
                 # Desired Quotes
                 my_bid = math.floor(fair_value) - 2
                 my_ask = math.ceil(fair_value) + 2
-                
+
                 # 2. Statistical Arbitrage: Clear market orders that are mispriced
                 if len(order_depth.sell_orders) != 0:
                     for ask in sorted(order_depth.sell_orders.keys()):
-                        if ask < fair_value or state.timestamp < 1000 and current_pos < TARGET_HOLD:
+                        if (
+                            ask < fair_value
+                            or state.timestamp < 1000
+                            and current_pos < TARGET_HOLD
+                        ):
                             ask_amount = order_depth.sell_orders[ask]
-                            target_buy = TARGET_HOLD - current_pos if state.timestamp < 1000 and ask >= fair_value else POSITION_LIMIT - current_pos
+                            target_buy = (
+                                TARGET_HOLD - current_pos
+                                if state.timestamp < 1000 and ask >= fair_value
+                                else POSITION_LIMIT - current_pos
+                            )
                             buy_vol = min(-ask_amount, target_buy)
                             if buy_vol > 0:
                                 orders.append(Order(product, ask, buy_vol))
                                 current_pos += buy_vol
-                
+
                 if len(order_depth.buy_orders) != 0:
                     for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
                         if bid > fair_value:
@@ -276,17 +339,44 @@ class Trader:
                                 orders.append(Order(product, bid, sell_vol))
                                 current_pos += sell_vol
 
-                # 3. Market Making: Post resting limit orders around the fair value
-                buy_volume = POSITION_LIMIT - current_pos
+                # 3. Market Making: always post passive two-sided quotes with edge.
+                # Improve over existing book when possible, but never cross fair value.
+                passive_bid = my_bid
+                passive_ask = my_ask
+
+                fair_bid_cap = math.floor(fair_value) - MM_SPREAD
+                fair_ask_floor = math.ceil(fair_value) + MM_SPREAD
+
+                if best_bid is not None:
+                    passive_bid = min(fair_bid_cap, best_bid + 1)
+                else:
+                    passive_bid = fair_bid_cap
+
+                if best_ask is not None:
+                    passive_ask = max(fair_ask_floor, best_ask - 1)
+                else:
+                    passive_ask = fair_ask_floor
+
+                # Keep a valid non-crossing quote pair in very tight books.
+                if passive_bid >= passive_ask:
+                    passive_bid = fair_bid_cap
+                    passive_ask = fair_ask_floor
+
+                inventory_gap = TARGET_HOLD - current_pos
+                raw_buy_size = MM_BASE_SIZE + inventory_gap // 4
+                raw_sell_size = MM_BASE_SIZE - inventory_gap // 4
+
+                # Keep two-sided quotes when possible, with inventory-aware skew.
+                buy_volume = min(POSITION_LIMIT - current_pos, max(1, raw_buy_size))
+                sell_volume = min(POSITION_LIMIT + current_pos, max(1, raw_sell_size))
+
                 if buy_volume > 0:
-                    orders.append(Order(product, my_bid, buy_volume))
-                    
-                sell_volume = TARGET_HOLD - current_pos
-                if sell_volume < 0:
-                    orders.append(Order(product, my_ask, sell_volume))
+                    orders.append(Order(product, passive_bid, buy_volume))
+
+                if sell_volume > 0:
+                    orders.append(Order(product, passive_ask, -sell_volume))
 
                 result[product] = orders
-
 
         traderData = jsonpickle.encode(trader_data)
         logger.flush(state, result, conversions, traderData)

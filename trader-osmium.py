@@ -21,6 +21,7 @@ import json
 # https://jmerle.github.io/imc-prosperity-3-visualizer/
 # https://prosperity.equirag.com/
 
+
 class Logger:
     def __init__(self) -> None:
         self.logs = ""
@@ -189,51 +190,91 @@ class Trader:
             if product == "ASH_COATED_OSMIUM":
                 order_depth: OrderDepth = state.order_depths[product]
                 orders: List[Order] = []
-                acceptable_price = 10000
+                fair_price = 10000
                 position = state.position.get(product, 0)
                 position_limit = 80
+                rebalance_threshold = 50
+                posted_buy = 0
+                posted_sell = 0
 
-                # 1. Take liquidity (Cross the spread if prices are favorable)
+                # 1) Take favorable liquidity with positive edge vs fair value.
                 for ask in sorted(order_depth.sell_orders.keys()):
                     ask_amount = order_depth.sell_orders[ask]
-                    if int(ask) <= acceptable_price:
+                    if int(ask) < fair_price:
                         trade_volume = min(-ask_amount, position_limit - position)
                         if trade_volume > 0:
-                            logger.print(f"QUOTE BUY {trade_volume}x {ask}")
+                            logger.print(f"TAKE BUY {trade_volume}x {ask}")
                             orders.append(Order(product, ask, trade_volume))
                             position += trade_volume
+                            posted_buy += trade_volume
 
                 for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
                     bid_amount = order_depth.buy_orders[bid]
-                    if int(bid) >= acceptable_price:
+                    if int(bid) > fair_price:
                         trade_volume = min(bid_amount, position + position_limit)
                         if trade_volume > 0:
-                            logger.print(f"QUOTE SELL {trade_volume}x {bid}")
+                            logger.print(f"TAKE SELL {trade_volume}x {bid}")
                             orders.append(Order(product, bid, -trade_volume))
                             position -= trade_volume
+                            posted_sell += trade_volume
 
-                # 2. Provide liquidity (Market Make to capture the spread)
-                best_bid = max(order_depth.buy_orders.keys()) if len(order_depth.buy_orders) > 0 else None
-                best_ask = min(order_depth.sell_orders.keys()) if len(order_depth.sell_orders) > 0 else None
+                # 2) If inventory is too skewed, flatten at fair value to free risk.
+                if position > rebalance_threshold:
+                    flatten_size = position
+                    remaining_sell_capacity = position_limit + position - posted_sell
+                    flatten_size = min(flatten_size, max(0, remaining_sell_capacity))
+                    if flatten_size > 0:
+                        logger.print(f"REBALANCE SELL {flatten_size}x {fair_price}")
+                        orders.append(Order(product, fair_price, -flatten_size))
+                        posted_sell += flatten_size
 
-                quote_buy_price = acceptable_price - 1
+                elif position < -rebalance_threshold:
+                    flatten_size = -position
+                    remaining_buy_capacity = position_limit - position - posted_buy
+                    flatten_size = min(flatten_size, max(0, remaining_buy_capacity))
+                    if flatten_size > 0:
+                        logger.print(f"REBALANCE BUY {flatten_size}x {fair_price}")
+                        orders.append(Order(product, fair_price, flatten_size))
+                        posted_buy += flatten_size
+
+                # 3) Provide passive liquidity by overbidding/undercutting with edge.
+                best_bid = (
+                    max(order_depth.buy_orders.keys())
+                    if len(order_depth.buy_orders) > 0
+                    else None
+                )
+                best_ask = (
+                    min(order_depth.sell_orders.keys())
+                    if len(order_depth.sell_orders) > 0
+                    else None
+                )
+
+                quote_buy_price = fair_price - 1
                 if best_bid is not None:
-                    quote_buy_price = min(acceptable_price - 1, best_bid + 1)
-                
-                quote_sell_price = acceptable_price + 1
-                if best_ask is not None:
-                    quote_sell_price = max(acceptable_price + 1, best_ask - 1)
+                    quote_buy_price = min(fair_price - 1, best_bid + 1)
 
-                remaining_buy_capacity = position_limit - position
-                remaining_sell_capacity = position_limit + position
+                quote_sell_price = fair_price + 1
+                if best_ask is not None:
+                    quote_sell_price = max(fair_price + 1, best_ask - 1)
+
+                remaining_buy_capacity = position_limit - position - posted_buy
+                remaining_sell_capacity = position_limit + position - posted_sell
 
                 if remaining_buy_capacity > 0:
-                    logger.print(f"QUOTE BUY {remaining_buy_capacity}x {quote_buy_price}")
-                    orders.append(Order(product, quote_buy_price, remaining_buy_capacity))
+                    logger.print(
+                        f"PASSIVE BUY {remaining_buy_capacity}x {quote_buy_price}"
+                    )
+                    orders.append(
+                        Order(product, quote_buy_price, remaining_buy_capacity)
+                    )
 
                 if remaining_sell_capacity > 0:
-                    logger.print(f"QUOTE SELL {remaining_sell_capacity}x {quote_sell_price}")
-                    orders.append(Order(product, quote_sell_price, -remaining_sell_capacity))
+                    logger.print(
+                        f"PASSIVE SELL {remaining_sell_capacity}x {quote_sell_price}"
+                    )
+                    orders.append(
+                        Order(product, quote_sell_price, -remaining_sell_capacity)
+                    )
 
                 result[product] = orders
 
