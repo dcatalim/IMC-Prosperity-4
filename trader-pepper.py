@@ -168,8 +168,8 @@ class Trader:
         """Only method required. It takes all buy and sell orders for all
         symbols as an input, and outputs a list of orders to be sent."""
 
-        print("traderData: " + state.traderData)
-        print("Observations: " + str(state.observations))
+        logger.print("traderData: " + state.traderData)
+        logger.print("Observations: " + str(state.observations))
 
         result = {}
         conversions = 0
@@ -185,59 +185,8 @@ class Trader:
 
         for product, order_depth in state.order_depths.items():
             orders: List[Order] = []
-
-            if product == "ASH_COATED_OSMIUM":
-                order_depth: OrderDepth = state.order_depths[product]
-                orders: List[Order] = []
-                acceptable_price = 10000
-                position = state.position.get(product, 0)
-                position_limit = 80
-
-                # 1. Take liquidity (Cross the spread if prices are favorable)
-                for ask in sorted(order_depth.sell_orders.keys()):
-                    ask_amount = order_depth.sell_orders[ask]
-                    if int(ask) < acceptable_price:
-                        trade_volume = min(-ask_amount, position_limit - position)
-                        if trade_volume > 0:
-                            print(f"FILL BUY {trade_volume}x {ask}")
-                            orders.append(Order(product, ask, trade_volume))
-                            position += trade_volume
-
-                for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
-                    bid_amount = order_depth.buy_orders[bid]
-                    if int(bid) > acceptable_price:
-                        trade_volume = min(bid_amount, position + position_limit)
-                        if trade_volume > 0:
-                            print(f"FILL SELL {trade_volume}x {bid}")
-                            orders.append(Order(product, bid, -trade_volume))
-                            position -= trade_volume
-
-                # 2. Provide liquidity (Market Make to capture the spread)
-                best_bid = max(order_depth.buy_orders.keys()) if len(order_depth.buy_orders) > 0 else None
-                best_ask = min(order_depth.sell_orders.keys()) if len(order_depth.sell_orders) > 0 else None
-
-                quote_buy_price = acceptable_price - 1
-                if best_bid is not None:
-                    quote_buy_price = min(acceptable_price - 1, best_bid + 1)
-                
-                quote_sell_price = acceptable_price + 1
-                if best_ask is not None:
-                    quote_sell_price = max(acceptable_price + 1, best_ask - 1)
-
-                remaining_buy_capacity = position_limit - position
-                remaining_sell_capacity = position_limit + position
-
-                if remaining_buy_capacity > 0:
-                    print(f"QUOTE BUY {remaining_buy_capacity}x {quote_buy_price}")
-                    orders.append(Order(product, quote_buy_price, remaining_buy_capacity))
-
-                if remaining_sell_capacity > 0:
-                    print(f"QUOTE SELL {remaining_sell_capacity}x {quote_sell_price}")
-                    orders.append(Order(product, quote_sell_price, -remaining_sell_capacity))
-
-                result[product] = orders
-
-            elif product == "INTARIAN_PEPPER_ROOT":
+            
+            if product == "INTARIAN_PEPPER_ROOT":
                 best_bid = max(order_depth.buy_orders.keys()) if len(order_depth.buy_orders) > 0 else None
                 best_ask = min(order_depth.sell_orders.keys()) if len(order_depth.sell_orders) > 0 else None
                 mid_price = (best_bid + best_ask) / 2 if (best_bid and best_ask) else (best_bid or best_ask or 10000)
@@ -250,7 +199,8 @@ class Trader:
                 # Position management
                 current_pos = state.position.get(product, 0)
                 POSITION_LIMIT = 80
-                
+                TARGET_HOLD = 40
+
                 # Desired Quotes
                 my_bid = math.floor(fair_value) - 2
                 my_ask = math.ceil(fair_value) + 2
@@ -258,9 +208,10 @@ class Trader:
                 # 2. Statistical Arbitrage: Clear market orders that are mispriced
                 if len(order_depth.sell_orders) != 0:
                     for ask in sorted(order_depth.sell_orders.keys()):
-                        if ask < fair_value:
+                        if ask < fair_value or state.timestamp < 1000 and current_pos < TARGET_HOLD:
                             ask_amount = order_depth.sell_orders[ask]
-                            buy_vol = min(-ask_amount, POSITION_LIMIT - current_pos)
+                            target_buy = TARGET_HOLD - current_pos if state.timestamp < 1000 and ask >= fair_value else POSITION_LIMIT - current_pos
+                            buy_vol = min(-ask_amount, target_buy)
                             if buy_vol > 0:
                                 orders.append(Order(product, ask, buy_vol))
                                 current_pos += buy_vol
@@ -269,7 +220,7 @@ class Trader:
                     for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
                         if bid > fair_value:
                             bid_amount = order_depth.buy_orders[bid]
-                            sell_vol = max(-bid_amount, -POSITION_LIMIT - current_pos)
+                            sell_vol = max(-bid_amount, TARGET_HOLD - current_pos)
                             if sell_vol < 0:
                                 orders.append(Order(product, bid, sell_vol))
                                 current_pos += sell_vol
@@ -279,7 +230,7 @@ class Trader:
                 if buy_volume > 0:
                     orders.append(Order(product, my_bid, buy_volume))
                     
-                sell_volume = -POSITION_LIMIT - current_pos
+                sell_volume = TARGET_HOLD - current_pos
                 if sell_volume < 0:
                     orders.append(Order(product, my_ask, sell_volume))
 
