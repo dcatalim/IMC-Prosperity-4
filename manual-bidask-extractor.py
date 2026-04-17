@@ -28,6 +28,11 @@ asks = []
 for row in ask_table.find_all('tr')[1:]:
     price = row.find_all('td')[0].text.strip()
     volume = row.find_all('td')[1].text.strip()
+    
+    volume = volume.replace('k', '000')  # Convert 'k' to actual numbers
+    volume = int(volume)
+    price = int(price)
+    
     asks.append((price, volume))
 
 print("\nAsks:")
