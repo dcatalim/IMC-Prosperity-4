@@ -3,24 +3,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Prosperity Round 1 Dashboard</title>
+    <title>Prosperity Round 2 Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="shell">
       <header class="hero">
         <div>
-          <p class="eyebrow">IMC Prosperity Round 1 Dashboard</p>
-          <h1>Intara trading groundwork view</h1>
+          <p class="eyebrow">IMC Prosperity Round 2 Dashboard</p>
+          <h1>Intara round 2 market view</h1>
           <p class="subtitle">
             Book depth, trade overlays, and backtest inspection for
             ASH_COATED_OSMIUM and INTARIAN_PEPPER_ROOT while you work the round
-            1 Intara market.
+            2 Intara market.
           </p>
         </div>
         <div class="hero-meta">
-          <div id="status-badge" class="status-badge">Loading round 1 data...</div>
-          <a class="dashboard-link" href="../dashboard/">Open Round 0 Dashboard</a>
+          <div id="status-badge" class="status-badge">Loading round 2 data...</div>
+          <a class="dashboard-link" href="../dashboard_round1/">Open Round 1 Dashboard</a>
         </div>
       </header>
 
@@ -115,6 +115,10 @@
             <label class="toggle-inline">
               <input id="show-asks-toggle" type="checkbox" checked />
               <span>Asks</span>
+            </label>
+            <label class="toggle-inline">
+              <input id="show-one-sided-toggle" type="checkbox" checked />
+              <span>One-Sided Highlights</span>
             </label>
             <label class="toggle-inline">
               <input id="show-market-trades-toggle" type="checkbox" checked />
@@ -282,7 +286,7 @@
           <div class="panel-title-row">
             <h2>Synthetic Lab</h2>
             <p id="synthetic-dataset-summary" class="panel-caption">
-              Resample the real Round 1 tape into new market scenarios.
+              Resample the real Round 2 tape into new market scenarios.
             </p>
           </div>
 
