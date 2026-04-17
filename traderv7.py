@@ -62,28 +62,25 @@ class Logger:
 
 logger = Logger()
 
-# =============================================================================
-# STRATEGY OVERVIEW
-# =============================================================================
-#
-# ASH_COATED_OSMIUM — Market Making
-# ----------------------------------
-# Posts simultaneous bid and ask orders on both sides of the order book,
-# profiting from the spread between the two prices without taking any
-# directional view on price movement.
-#
-# Quotes are placed one tick inside the market's best bid and ask to gain
-# queue priority and maximise fill rate. Quoting is gated behind a minimum
-# spread threshold of 2 ticks to ensure profitability after tightening.
-# A safety check prevents posting a crossed spread in edge cases.
-#
-# INTARIAN_PEPPER_ROOT — Buy & Hold
-# -----------------------------------
-# Exploits a persistent upward drift in the pepper price by immediately
-# acquiring the maximum allowed long position and holding it for the
-# duration of the session.
-#
-# =============================================================================
+'''
+
+ASH_COATED_OSMIUM - Market Making
+
+Posts simultaneous bid and ask orders on both sides of the order book,
+profiting from the spread between the two prices without taking any
+directional view on price movement.
+
+Quotes are placed one tick inside the market's best bid and ask to gain
+queue priority and maximise fill rate. Quoting is gated behind a minimum
+spread threshold of 2 ticks to ensure profitability after tightening.
+A safety check prevents posting a crossed spread in edge cases.
+
+INTARIAN_PEPPER_ROOT - Buy & Hold
+
+Exploits a persistent upward drift in the pepper price by immediately
+acquiring the maximum allowed long position and holding it for the
+duration of the session.
+'''
 
 class Trader:
     def run(self, state: TradingState):

@@ -63,8 +63,6 @@ class Logger:
 logger = Logger()
 
 """
-Prosperity 2 Algorithmic Trading Implementation
-Round 1 Asset Strategy
 
 ASH_COATED_OSMIUM: Spread-Capture Market Making
    - Employs a 'pennying' logic to maintain price priority at the top of the book.

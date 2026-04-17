@@ -65,8 +65,8 @@ logger = Logger()
 '''
 STRATEGY OVERVIEW:
 
-1. ASH_COATED_OSMIUM (The Hybrid Market-Maker)
-   - Characteristic: Highly stable with a massive ~16-point spread. FV always around 10k.
+ASH_COATED_OSMIUM (The Hybrid Market-Maker)
+
    - Strategy: Hybrid Market-Taking & Pennying.
      Market Taking: Calculates the current mid-price. If it detects 
         resting orders in the book that are "too cheap" (below mid) or "too expensive" 
@@ -75,8 +75,8 @@ STRATEGY OVERVIEW:
         [Best Bid + 1] and [Best Ask - 1]. This ensures we are always the most 
         competitive price in the book, maximizing our share of that fat spread.
 
-2. INTARIAN_PEPPER_ROOT (The Drift Rider)
-   - Characteristic: Persistent, near-linear upward drift (approx. +1000 points/day).
+INTARIAN_PEPPER_ROOT (The Drift Rider)
+   
    - Strategy: Max Long Directional Bet.
      - Because the asset has a positive expected value over time, the goal is 
        utility—staying as long as possible.
