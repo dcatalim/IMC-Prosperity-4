@@ -62,28 +62,34 @@ class Logger:
 
 logger = Logger()
 
-"""
-Prosperity 2 Algorithmic Trading Implementation
-Round 1 Asset Strategy
-
-ASH_COATED_OSMIUM: Spread-Capture Market Making
-   - Employs a 'pennying' logic to maintain price priority at the top of the book.
-   - Dynamically adjusts limit orders to [Best Bid + 1] and [Best Ask - 1].
-   - Targets the high-margin 16-point spread while maintaining market-neutral positioning 
-     through continuous limit order adjustment.
-
-INTARIAN_PEPPER_ROOT: Directional Drift Exposure
-   - Implements an aggressive buy-side mandate to achieve maximum long saturation.
-   - Executes against resting sell liquidity or utilizes deep-in-the-money limit 
-     orders (20,000) to guarantee fill priority.
-   - Sustains a terminal +80 long position to capitalize on deterministic price drift.
-"""
+# =============================================================================
+# STRATEGY OVERVIEW
+# =============================================================================
+#
+# ASH_COATED_OSMIUM — Market Making
+# ----------------------------------
+# Posts simultaneous bid and ask orders on both sides of the order book,
+# profiting from the spread between the two prices without taking any
+# directional view on price movement.
+#
+# Quotes are placed one tick inside the market's best bid and ask to gain
+# queue priority and maximise fill rate. Quoting is gated behind a minimum
+# spread threshold of 2 ticks to ensure profitability after tightening.
+# A safety check prevents posting a crossed spread in edge cases.
+#
+# INTARIAN_PEPPER_ROOT — Buy & Hold
+# -----------------------------------
+# Exploits a persistent upward drift in the pepper price by immediately
+# acquiring the maximum allowed long position and holding it for the
+# duration of the session.
+#
+# =============================================================================
 
 class Trader:
     def run(self, state: TradingState):
         result = {}
         conversions = 0
-        trader_data = "" 
+        trader_data = ""
 
         for product in state.order_depths.keys():
             order_depth: OrderDepth = state.order_depths[product]
@@ -92,35 +98,54 @@ class Trader:
             LIMIT = 80
 
             if product == "ASH_COATED_OSMIUM":
-                # Focus exclusively on capturing the massive 16-point spread.
-                best_bid = max(order_depth.buy_orders.keys()) if order_depth.buy_orders else 9999
-                best_ask = min(order_depth.sell_orders.keys()) if order_depth.sell_orders else 10001
-                
-                # Competitive pricing: Be the best price in the book
-                my_bid = best_bid + 1
-                my_ask = best_ask - 1
-                
-                # Ensure we don't accidentally cross our own spread
-                if my_bid >= my_ask:
-                    my_bid = best_bid
-                    my_ask = best_ask
+                # STRATEGY: SPREAD-GATED MARKET MAKING WITH INVENTORY SKEW
 
-                # Always maintain max possible volume on both sides of the book
-                if LIMIT - pos > 0:
-                    orders.append(Order(product, int(my_bid), LIMIT - pos))
-                if LIMIT + pos > 0:
-                    orders.append(Order(product, int(my_ask), -(LIMIT + pos)))
+                # Step 1: Find the best prices currently in the market.
+                best_bid = max(order_depth.buy_orders.keys()) if order_depth.buy_orders else None
+                best_ask = min(order_depth.sell_orders.keys()) if order_depth.sell_orders else None
+
+                # Step 2: Only proceed if there are orders on BOTH sides of the book.
+                if best_bid is not None and best_ask is not None:
+
+                    spread = best_ask - best_bid
+
+                    # Step 3: Only quote if the spread is wide enough to be profitable.
+                    MIN_SPREAD = 2
+
+                    if spread >= MIN_SPREAD:
+
+                        # Step 4: Inventory skew — how "full" is our position, from -1 to +1.
+                        skew = pos / LIMIT
+
+                        # Step 5: Adjust quotes based on skew.
+                        # Being very long shifts both prices down: sell more eagerly, buy less eagerly.
+                        bid_adjustment = -round(skew)
+                        ask_adjustment = -round(skew)
+
+                        my_bid = best_bid + bid_adjustment
+                        my_ask = best_ask + ask_adjustment
+
+                        # Step 6: Safety check — never let bid >= ask.
+                        if my_bid >= my_ask:
+                            my_bid = best_bid
+                            my_ask = best_ask
+
+                        # Step 7: Post orders for remaining capacity on each side.
+                        buy_capacity = LIMIT - pos
+                        sell_capacity = LIMIT + pos
+
+                        if buy_capacity > 0:
+                            orders.append(Order(product, int(my_bid), buy_capacity))
+                        if sell_capacity > 0:
+                            orders.append(Order(product, int(my_ask), -sell_capacity))
 
             elif product == "INTARIAN_PEPPER_ROOT":
                 # --- STRATEGY: SIMPLE BUY & HOLD ---
-                # Immediate max long to ride the 0.001 drift.
                 if pos < LIMIT:
-                    # Buy at whatever the best ask is to fill the position instantly
                     best_ask = min(order_depth.sell_orders.keys()) if order_depth.sell_orders else None
                     if best_ask:
                         orders.append(Order(product, best_ask, LIMIT - pos))
                     else:
-                        # Backup: just place a very high bid to ensure we get filled
                         orders.append(Order(product, 20000, LIMIT - pos))
 
             result[product] = orders

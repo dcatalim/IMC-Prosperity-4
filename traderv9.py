@@ -62,65 +62,83 @@ class Logger:
 
 logger = Logger()
 
-"""
-Prosperity 2 Algorithmic Trading Implementation
-Round 1 Asset Strategy
+'''
+STRATEGY OVERVIEW:
 
-ASH_COATED_OSMIUM: Spread-Capture Market Making
-   - Employs a 'pennying' logic to maintain price priority at the top of the book.
-   - Dynamically adjusts limit orders to [Best Bid + 1] and [Best Ask - 1].
-   - Targets the high-margin 16-point spread while maintaining market-neutral positioning 
-     through continuous limit order adjustment.
+1. ASH_COATED_OSMIUM (The Hybrid Market-Maker)
+   - Characteristic: Highly stable with a massive ~16-point spread. FV always around 10k.
+   - Strategy: Hybrid Market-Taking & Pennying.
+     Market Taking: Calculates the current mid-price. If it detects 
+        resting orders in the book that are "too cheap" (below mid) or "too expensive" 
+        (above mid), it immediately cross-trades to snatch that volume.
+     Pennying: After taking mispriced volume, it places limit orders at 
+        [Best Bid + 1] and [Best Ask - 1]. This ensures we are always the most 
+        competitive price in the book, maximizing our share of that fat spread.
 
-INTARIAN_PEPPER_ROOT: Directional Drift Exposure
-   - Implements an aggressive buy-side mandate to achieve maximum long saturation.
-   - Executes against resting sell liquidity or utilizes deep-in-the-money limit 
-     orders (20,000) to guarantee fill priority.
-   - Sustains a terminal +80 long position to capitalize on deterministic price drift.
-"""
+2. INTARIAN_PEPPER_ROOT (The Drift Rider)
+   - Characteristic: Persistent, near-linear upward drift (approx. +1000 points/day).
+   - Strategy: Max Long Directional Bet.
+     - Because the asset has a positive expected value over time, the goal is 
+       utility—staying as long as possible.
+     - We bid significantly above market (up to 20,000) to ensure the 80-unit position 
+       limit is filled instantly and maintained at all costs.
+'''
 
 class Trader:
     def run(self, state: TradingState):
         result = {}
         conversions = 0
         trader_data = "" 
+        LIMIT = 80
 
         for product in state.order_depths.keys():
             order_depth: OrderDepth = state.order_depths[product]
             orders: List[Order] = []
             pos = state.position.get(product, 0)
-            LIMIT = 80
 
             if product == "ASH_COATED_OSMIUM":
-                # Focus exclusively on capturing the massive 16-point spread.
+                # Get current book state
                 best_bid = max(order_depth.buy_orders.keys()) if order_depth.buy_orders else 9999
                 best_ask = min(order_depth.sell_orders.keys()) if order_depth.sell_orders else 10001
+                mid_price = (best_bid + best_ask) / 2
+
+                # 1. Market Taking: Snatch volume that is better than mid-price
+                # Buy orders below mid
+                sorted_asks = sorted(order_depth.sell_orders.items())
+                for price, vol in sorted_asks:
+                    if price < mid_price - 1 and pos < LIMIT:
+                        num = min(-vol, LIMIT - pos)
+                        orders.append(Order(product, price, num))
+                        pos += num
                 
-                # Competitive pricing: Be the best price in the book
+                # Sell orders above mid
+                sorted_bids = sorted(order_depth.buy_orders.items(), reverse=True)
+                for price, vol in sorted_bids:
+                    if price > mid_price + 1 and pos > -LIMIT:
+                        num = min(vol, LIMIT + pos)
+                        orders.append(Order(product, price, -num))
+                        pos -= num
+
+                # 2. Competitive Quoting (Your original "Pennying" logic)
                 my_bid = best_bid + 1
                 my_ask = best_ask - 1
                 
-                # Ensure we don't accidentally cross our own spread
                 if my_bid >= my_ask:
                     my_bid = best_bid
                     my_ask = best_ask
 
-                # Always maintain max possible volume on both sides of the book
                 if LIMIT - pos > 0:
                     orders.append(Order(product, int(my_bid), LIMIT - pos))
                 if LIMIT + pos > 0:
                     orders.append(Order(product, int(my_ask), -(LIMIT + pos)))
 
             elif product == "INTARIAN_PEPPER_ROOT":
-                # --- STRATEGY: SIMPLE BUY & HOLD ---
-                # Immediate max long to ride the 0.001 drift.
+                # --- STRATEGY: ORIGINAL BUY & HOLD ---
                 if pos < LIMIT:
-                    # Buy at whatever the best ask is to fill the position instantly
                     best_ask = min(order_depth.sell_orders.keys()) if order_depth.sell_orders else None
                     if best_ask:
                         orders.append(Order(product, best_ask, LIMIT - pos))
                     else:
-                        # Backup: just place a very high bid to ensure we get filled
                         orders.append(Order(product, 20000, LIMIT - pos))
 
             result[product] = orders
