@@ -4,20 +4,20 @@ const BUILTIN_DATASETS = [
   {
     key: "round2-day-1",
     label: "Round 2 / Day 1 / ASH_COATED_OSMIUM + INTARIAN_PEPPER_ROOT",
-    pricePath: "../datasets/round2/prices_round_2_day_1.csv",
-    tradePath: "../datasets/round2/trades_round_2_day_1.csv",
+    pricePath: "../data/round2/prices_round_2_day_1.csv",
+    tradePath: "../data/round2/trades_round_2_day_1.csv",
   },
   {
     key: "round2-day-0",
     label: "Round 2 / Day 0 / ASH_COATED_OSMIUM + INTARIAN_PEPPER_ROOT",
-    pricePath: "../datasets/round2/prices_round_2_day_0.csv",
-    tradePath: "../datasets/round2/trades_round_2_day_0.csv",
+    pricePath: "../data/round2/prices_round_2_day_0.csv",
+    tradePath: "../data/round2/trades_round_2_day_0.csv",
   },
   {
     key: "round2-day--1",
     label: "Round 2 / Day -1 / ASH_COATED_OSMIUM + INTARIAN_PEPPER_ROOT",
-    pricePath: "../datasets/round2/prices_round_2_day_-1.csv",
-    tradePath: "../datasets/round2/trades_round_2_day_-1.csv",
+    pricePath: "../data/round2/prices_round_2_day_-1.csv",
+    tradePath: "../data/round2/trades_round_2_day_-1.csv",
   },
 ];
 
