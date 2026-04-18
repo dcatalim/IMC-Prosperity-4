@@ -157,9 +157,6 @@ class Trader:
         return 0
 
     def run(self, state: TradingState):
-        logger.print("traderData: " + state.traderData)
-        logger.print("Observations: " + str(state.observations))
-
         result = {}
         conversions = 0
         trader_data = {}
@@ -175,116 +172,101 @@ class Trader:
         for product, order_depth in state.order_depths.items():
             orders: List[Order] = []
 
-            if product == "ASH_COATED_OSMIUM":
-                order_depth = state.order_depths[product]
-                position = state.position.get(product, 0)
-                position_limit = 80
+            if product == "INTARIAN_PEPPER_ROOT":
+                best_bid = max(order_depth.buy_orders.keys()) if len(order_depth.buy_orders) > 0 else None
+                best_ask = min(order_depth.sell_orders.keys()) if len(order_depth.sell_orders) > 0 else None
+                mid_price = ((best_bid + best_ask) / 2 if (best_bid and best_ask) else (best_bid or best_ask or 100000))
 
-                best_bid = (
-                    max(order_depth.buy_orders.keys())
-                    if order_depth.buy_orders
-                    else None
-                )
-                best_ask = (
-                    min(order_depth.sell_orders.keys())
-                    if order_depth.sell_orders
-                    else None
-                )
+                # Fair value formula - accurate to within std of 2.28, do not change
+                implied_base = mid_price - state.timestamp * 0.001
+                base_price = round(implied_base / 100) * 100
+                fair_value = base_price + (state.timestamp * 0.001)
 
-                if best_bid is not None and best_ask is not None:
-                    raw_mid = (best_bid + best_ask) / 2
-                elif best_bid is not None:
-                    raw_mid = best_bid
-                elif best_ask is not None:
-                    raw_mid = best_ask
-                else:
-                    raw_mid = 10001
+                current_pos = state.position.get(product, 0)
+                POSITION_LIMIT = 80
 
-                fair_price = 0.85 * 10001 + 0.15 * raw_mid
+                # 70 units held as core drift position → 7,000 XIRECs baseline
+                # 10 units above 70 actively market make to earn extra spread profit
+                DRIFT_TARGET = 70
+                TRADING_BAND_TOP = 80
 
-                logger.print(f"OSM fair_price={fair_price}, position={position}")
+                # --- REGIME 1: TAKE ORDERS ---
 
-                take_buy_edge = 2
-                take_sell_edge = 2
+                if len(order_depth.sell_orders) != 0:
+                    for ask in sorted(order_depth.sell_orders.keys()):
 
-                #added dynamic edge adjustment based on position to encourage more aggressive trading when further from center
+                        if current_pos < DRIFT_TARGET:
+                            # DRIFT REGIME: buy gradually as good offers appear.
+                            # We accept anything at or 1 above fair value — good enough
+                            # to be worth holding for the drift, but we are not
+                            # desperately chasing. Offers above fair+1 we simply ignore
+                            # and wait for a better price to come along passively.
+                            buy_threshold = fair_value +1
+                        else:
+                            # TRADING BAND: only buy genuine bargains at or below fair
+                            # so we have room to sell again and complete round trips
+                            buy_threshold = fair_value
 
-                if position > 30 and position <= 50:
-                    take_buy_edge = 3
-                    take_sell_edge = 1
-                elif position > 50 and position <= 70:
-                    take_buy_edge = 4
-                    take_sell_edge = 1
-                elif position > 70:
-                    take_buy_edge = 5
-                    take_sell_edge = 1
-                elif position < -30 and position >= -50:
-                    take_buy_edge = 1
-                    take_sell_edge = 3
-                elif position < -50 and position >= -70:
-                    take_buy_edge = 1
-                    take_sell_edge = 4
-                elif position < -70:
-                    take_buy_edge = 1
-                    take_sell_edge = 5
+                        if ask <= buy_threshold:
+                            buy_vol = min(-order_depth.sell_orders[ask], POSITION_LIMIT - current_pos)
+                            if buy_vol > 0:
+                                orders.append(Order(product, ask, buy_vol))
+                                current_pos += buy_vol
 
-                for ask in sorted(order_depth.sell_orders.keys()):
-                    if ask <= fair_price - take_buy_edge:
-                        trade_volume = min(
-                            -order_depth.sell_orders[ask],
-                            position_limit - position,
-                        )
-                        if trade_volume > 0:
-                            logger.print(f"TAKE BUY {trade_volume}x {ask}")
-                            orders.append(Order(product, ask, trade_volume))
-                            position += trade_volume
+                if len(order_depth.buy_orders) != 0:
+                    for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
+                        # Only take-sell above drift target AND at a serious premium.
+                        # Never sell below drift target — those are our core drift units.
+                        if current_pos > DRIFT_TARGET and bid > fair_value + 3:
+                            sell_vol = max(
+                                -order_depth.buy_orders[bid],
+                                DRIFT_TARGET - current_pos
+                            )
+                            if sell_vol < 0:
+                                orders.append(Order(product, bid, sell_vol))
+                                current_pos += sell_vol
 
-                for bid in sorted(order_depth.buy_orders.keys(), reverse=True):
-                    if bid >= fair_price + take_sell_edge:
-                        trade_volume = min(
-                            order_depth.buy_orders[bid],
-                            position + position_limit,
-                        )
-                        if trade_volume > 0:
-                            logger.print(f"TAKE SELL {trade_volume}x {bid}")
-                            orders.append(Order(product, bid, -trade_volume))
-                            position -= trade_volume
+                # --- REGIME 2: PASSIVE QUOTING ---
 
-                SPREAD = 2
-                BASE_PASSIVE_SIZE = 14
-                price_skew = max(-3, min(3, -position / 25))
-
-                quote_buy_price = math.floor(fair_price - SPREAD + price_skew)
-                quote_sell_price = math.ceil(fair_price + SPREAD + price_skew)
-
+                fair_bid_cap = math.floor(fair_value) - 1
+                passive_bid = fair_bid_cap
                 if best_bid is not None:
-                    quote_buy_price = min(quote_buy_price, best_bid + 1)
-                if best_ask is not None:
-                    quote_sell_price = max(quote_sell_price, best_ask - 1)
+                    passive_bid = min(fair_bid_cap, best_bid + 1)
 
-                if quote_buy_price >= quote_sell_price:
-                    quote_buy_price = math.floor(fair_price - SPREAD)
-                    quote_sell_price = math.ceil(fair_price + SPREAD)
+                if current_pos <= DRIFT_TARGET:
+                    # DRIFT REGIME: passive ask is nearly impossible to fill.
+                    # Protect the core 70 units at all costs.
+                    passive_ask = math.ceil(fair_value) + 4
+                    if best_ask is not None:
+                        passive_ask = max(math.ceil(fair_value) + 4, best_ask - 1)
+                else:
+                    # TRADING BAND: competitive ask to earn the spread on extra units
+                    passive_ask = math.ceil(fair_value) + 2
+                    if best_ask is not None:
+                        passive_ask = max(math.ceil(fair_value) + 2, best_ask - 1)
 
-                inventory_bias = position // 15
-                buy_size = max(0, BASE_PASSIVE_SIZE - inventory_bias)
-                sell_size = max(0, BASE_PASSIVE_SIZE + inventory_bias)
+                if passive_bid >= passive_ask:
+                    passive_bid = math.floor(fair_value) - 1
+                    passive_ask = math.ceil(fair_value) + 2
 
-                if position >= 55:
-                    buy_size = 0
-                elif position <= -55:
-                    sell_size = 0
+                # Passive sizes
+                if current_pos < DRIFT_TARGET:
+                    # Still building toward drift target — buy normally, barely sell
+                    buy_volume = min(POSITION_LIMIT - current_pos, 10)
+                    sell_volume = 1
+                elif current_pos <= TRADING_BAND_TOP:
+                    # In trading band — cycle the extra units above 70
+                    units_above_drift = current_pos - DRIFT_TARGET
+                    buy_volume = min(POSITION_LIMIT - current_pos, max(1, 10 - units_above_drift))
+                    sell_volume = min(current_pos - DRIFT_TARGET, max(1, units_above_drift))
+                else:
+                    buy_volume = 0
+                    sell_volume = min(current_pos - DRIFT_TARGET, 10)
 
-                buy_size = min(buy_size, position_limit - position)
-                sell_size = min(sell_size, position_limit + position)
-
-                if buy_size > 0:
-                    logger.print(f"PASSIVE BUY {buy_size}x {quote_buy_price}")
-                    orders.append(Order(product, quote_buy_price, buy_size))
-
-                if sell_size > 0:
-                    logger.print(f"PASSIVE SELL {sell_size}x {quote_sell_price}")
-                    orders.append(Order(product, quote_sell_price, -sell_size))
+                if buy_volume > 0:
+                    orders.append(Order(product, passive_bid, buy_volume))
+                if sell_volume > 0:
+                    orders.append(Order(product, passive_ask, -sell_volume))
 
                 result[product] = orders
 

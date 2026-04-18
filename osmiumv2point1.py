@@ -208,6 +208,7 @@ class Trader:
                 take_sell_edge = 2
 
                 #added dynamic edge adjustment based on position to encourage more aggressive trading when further from center
+                #before it was only when position was abocve 40 or below -40, now it scales up more gradually and starts at 30 and -30 to encourage more trading even when not extremely far from center
 
                 if position > 30 and position <= 50:
                     take_buy_edge = 3
@@ -251,7 +252,10 @@ class Trader:
                             position -= trade_volume
 
                 SPREAD = 2
-                BASE_PASSIVE_SIZE = 14
+
+                #changed from 14 to 12 to allow for more competitive pricing and more trading opportunities, especially with the dynamic edge adjustment encouraging more aggressive trading when further from center, while still providing a reasonable buffer to avoid overtrading and excessive risk when very close to center
+                BASE_PASSIVE_SIZE = 12
+                
                 price_skew = max(-3, min(3, -position / 25))
 
                 quote_buy_price = math.floor(fair_price - SPREAD + price_skew)
@@ -270,9 +274,11 @@ class Trader:
                 buy_size = max(0, BASE_PASSIVE_SIZE - inventory_bias)
                 sell_size = max(0, BASE_PASSIVE_SIZE + inventory_bias)
 
-                if position >= 55:
+
+                #changed from 55 to 75 to allow for more aggressive trading and larger position swings before cutting off passive orders, since the dynamic edge adjustment should help manage risk better and encourage more trading even when not extremely far from center
+                if position >= 75:
                     buy_size = 0
-                elif position <= -55:
+                elif position <= -75:
                     sell_size = 0
 
                 buy_size = min(buy_size, position_limit - position)
