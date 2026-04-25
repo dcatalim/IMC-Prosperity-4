@@ -1,0 +1,88 @@
+from overfit_mostly.r3lab_core import DEFAULT_OFFSETS, build_trader, make_voucher_maps
+
+
+voucher_maps = make_voucher_maps(
+    default_side="both",
+    default_width=6.0,
+    default_size=1,
+    default_take_edge=None,
+    side_overrides={
+        "VEV_5000": "sell",
+        "VEV_5100": "sell",
+        "VEV_5200": "sell",
+        "VEV_5300": "sell",
+        "VEV_5400": "buy",
+        "VEV_5500": "sell",
+        "VEV_6000": "sell",
+        "VEV_6500": "sell",
+    },
+    width_overrides={
+        "VEV_4000": 6.0,
+        "VEV_4500": 6.0,
+        "VEV_5000": 6.0,
+        "VEV_5100": 5.0,
+        "VEV_5200": 5.0,
+        "VEV_5300": 4.0,
+        "VEV_5400": 3.0,
+        "VEV_5500": 3.0,
+        "VEV_6000": 1.0,
+        "VEV_6500": 1.0,
+    },
+    size_overrides={
+        "VEV_4000": 16,
+        "VEV_4500": 1,
+        "VEV_5000": 1,
+        "VEV_5100": 1,
+        "VEV_5200": 1,
+        "VEV_5300": 1,
+        "VEV_5400": 1,
+        "VEV_5500": 1,
+        "VEV_6000": 1,
+        "VEV_6500": 1,
+    },
+)
+
+CONFIG = {
+    "tte_candidates": [5.0, 6.0, 7.0, 8.0],
+    "hydro": {
+        "anchor": 10000.0,
+        "micro_coef": 0.90,
+        "mean_coef": 0.18,
+        "ema_alpha": 0.08,
+        "take_buy_edge": 2.0,
+        "take_sell_edge": 2.0,
+        "take_buy_edge_wide": 4.0,
+        "take_sell_edge_wide": 4.0,
+        "wide_position": 60,
+        "flatten_trigger": 120,
+        "flatten_size": 25,
+        "quote_width": 2.0,
+        "skew": 0.03,
+        "quote_size": 24,
+    },
+    "velvet": {
+        "enabled": True,
+        "anchor": 5250.0,
+        "micro_coef": 0.00,
+        "ema_coef": 0.00,
+        "ema_alpha": 0.10,
+        "take_enabled": True,
+        "take_buy_edge": 6.0,
+        "take_sell_edge": 6.0,
+        "quote_width": 100.0,
+        "skew": 0.00,
+        "quote_size": 0,
+        "flatten_trigger": 40,
+        "flatten_size": 20,
+    },
+    "vouchers": {
+        "sigma": 0.01275,
+        "offsets": DEFAULT_OFFSETS,
+        "skew": 0.02,
+        "flatten_trigger": 160,
+        "flatten_size": 15,
+        **voucher_maps,
+    },
+}
+
+Trader = build_trader(CONFIG)
