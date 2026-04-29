@@ -1,0 +1,20 @@
+I’ll turn the news into an actual submission slate: direction, allocation %, and a short rationale. I’ll lean toward strong structural catalysts and avoid overpaying concentration fees.
+
+Thought for 17s
+
+Use 100% of the budget; unused budget expires worthless. My Round 5 manual submission would be:
+
+Good	Action	Allocation
+Thermalite Core	Buy	16%
+Sulfur Reactor	Buy	16%
+Pyroflex Cells	Sell	14%
+Lava Cake	Sell	13%
+Obsidian Cutlery	Sell	11%
+Magma Ink	Buy	11%
+Ashes of the Phoenix	Sell	8%
+Volcanic Incense	Buy	6%
+Scoria Paste	Buy	5%
+
+Total: 100%
+
+This leans hardest into the cleanest structural signals: Thermalite Core has confirmed demand growth, Sulfur Reactor has forced index-buying pressure, and Pyroflex Cells has a direct negative policy shock. I’d also size Lava Cake heavily on the short side because sales suspension plus lawsuits is a brutal catalyst. I’d keep Scoria Paste and Volcanic Incense small because the reference flags them as influencer or momentum-driven rather than fundamental. The quadratic fee means you should not jam everything into only two or three products; spreading across all nine keeps fee drag lower while still weighting the strongest news.

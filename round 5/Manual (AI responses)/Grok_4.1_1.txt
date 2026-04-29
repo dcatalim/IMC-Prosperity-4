@@ -1,0 +1,70 @@
+Here's the optimal strategy and recommended submission for Round 5 Manual Challenge — "Extra! Extra! Read All About It!" on the Ignith exchange.
+Core Mechanics (from the reference)
+
+Budget: 1,000,000 XIRECs (allocate as percentages summing to ≤ 100%).
+Fee: Quadratic penalty per product — fee = (volume/100) * (volume/100) ** budget (or similar quadratic form; concentration is heavily penalized).
+Investment per good = (percentage / 100) × total budget.
+PnL comes from price movement after news impact × your net position (long or short), minus fees.
+You submit buy/sell direction + allocation % for each of the 9 goods. Unused budget expires worthless.
+Goal: Maximize expected net PnL after fees across 100+ hidden simulations (average score).
+
+The fee structure makes it a portfolio optimization problem with convex costs: spread capital across high-conviction signals rather than going all-in on one or two. Diversification reduces fee drag significantly.
+News Signal Analysis
+From the Ashflow Alpha headlines:
+Strong Bullish (structural catalysts, high conviction):
+
+Thermalite Core — Quarterly forecast shows massive demand surge (1.42M → 3.89M units). Clear fundamental tailwind.
+Sulfur Reactor — Confirmed inclusion in Elemental Index 118 → forced buying by index trackers. Very reliable catalyst.
+
+Bullish but weaker/riskier:
+
+Magma Ink — Merger + hot drop / limited edition demand spike. Momentum-driven but positive.
+Scoria Paste — Influencer-driven stockpiling call. Authentic? Assess cautiously (narrative risk).
+Volcanic Incense — Momentum rally tied to appearances. Timing-sensitive, less structural.
+
+Strong Bearish (structural headwinds):
+
+Obsidian Cutlery — Manufacturing halted, contamination protocols. Production shutdown = clear downside.
+Pyroflex Cells — Tax cut abolished → levy doubles, disrupts purchases. Policy-driven negative.
+Ashes of the Phoenix — Public scandal + credibility hit on sourcing. Reputation damage.
+
+Bearish:
+
+Lava Cake — Actual lava traces, sales suspended, lawsuits. Strong negative.
+
+Recommended Allocation Strategy
+Prioritize the highest-conviction structural signals (Thermalite, Sulfur, Obsidian, Pyroflex) and add selective exposure to the next tier. Avoid over-concentration.
+Suggested percentages (sum = 95–100%; adjust slightly for platform rounding):
+
+Thermalite Core: 25% (Buy) — Strongest fundamental upside.
+Sulfur Reactor: 20% (Buy) — Index inclusion is a forcing move.
+Obsidian Cutlery: 15% (Sell/Short) — Production halt is severe.
+Pyroflex Cells: 15% (Sell/Short) — Tax policy change is structural.
+Ashes of the Phoenix: 10% (Sell/Short) — Scandal impact.
+Magma Ink: 8% (Buy) — Merger demand spike.
+Lava Cake: 7% (Sell/Short) — Lawsuits and suspension.
+
+Remaining ~0–5%: Hold in cash or add marginally to Scoria Paste / Volcanic Incense only if you have extra conviction in the influencer/momentum narrative. Otherwise, leave unallocated (better than weak bets).
+This spreads risk while overweighting the clearest signals. The quadratic fee makes going >25–30% on any single name very expensive in expectation.
+Why This Allocation?
+
+High-conviction structural signals (news with clear economic impact like index inclusion, tax changes, production halts) tend to have more predictable and larger moves than pure momentum/influencer stories.
+Bearish positions are included because strong negative news (shutdowns, policy changes, scandals) reliably drive prices down.
+Diversification across 6–7 names keeps per-product volume low → quadratic fees stay manageable.
+From past similar rounds (Prosperity 1–3 manual news trading), teams that modeled expected % moves + optimized allocations under quadratic costs outperformed "all-in on strongest headline" approaches.
+
+Implementation Tips
+
+On the platform UI:
+Enter % allocation for each good.
+Select Buy or Sell direction.
+Verify total budget used ≤ 100%.
+The fee preview will show automatically — tweak if any single fee looks excessive.
+
+If the platform allows multiple submissions or has a simulator, test small variations (e.g., ±5% shifts between top names).
+Risk management: Even with strong signals, news impact has variance. The spread allocation hedges against any single headline underperforming.
+
+Expected Outcome
+This should deliver strong positive average PnL across the hidden simulations, competitive for the manual winner prize pool. Top manual scores in similar past rounds came from disciplined optimization rather than maximal concentration.
+If you have access to the exact fee formula, expected move magnitudes from platform data, or historical simulation outcomes, share them and I can refine the percentages further (e.g., via a quick optimization script).
+Good luck — go maximize those XIRECs! If you need help with the algorithmic side of Round 5 (cluster/lead-lag analysis on the 50 products), let me know.

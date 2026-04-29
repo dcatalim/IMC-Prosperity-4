@@ -1,0 +1,78 @@
+ I'll analyze the Round 5 manual challenge "Extra! Extra! Read All About It!" and provide a comprehensive strategy with optimal budget allocation.
+
+## Round 5 Manual Challenge Analysis
+
+### The Setup
+- **Budget:** 1,000,000 XIRECs (must allocate ≤100%, unused budget expires worthless)
+- **Fee formula:** `fee = (volume/100) × (volume/100)^budget` — wait, this seems ambiguous. Let me re-read...
+
+Actually, looking more carefully at the formula: `fee = (volume_for_specific_product / 100) * (volume_for_specific_product / 100) ** budget` — this appears to be a typo in the document. The standard interpretation for these challenges is that **fee scales quadratically with concentration** — the more you concentrate in one product, the higher the fee drag. The key insight is: **diversify across high-conviction positions** to minimize fees.
+
+### News Signal Analysis
+
+| # | Product | Signal Quality | Direction | Rationale |
+|---|---------|---------------|-----------|-----------|
+| 1 | **Obsidian Cutlery** | 🔴 Strong Bear | **SHORT** | Manufacturing halted, contamination, facility evacuated — structural supply shock |
+| 2 | **Pyroflex Cells** | 🔴 Strong Bear | **SHORT** | Tax cut abolished, levy doubles — direct margin compression, policy-driven |
+| 3 | **Thermalite Core** | 🟢 Strong Bull | **LONG** | Demand surge confirmed in quarterly forecast (1.42M → 3.89M units) — fundamental, data-backed |
+| 4 | **Lava Cake** | 🔴 Strong Bear | **SHORT** | Health crisis, sales suspended, lawsuits — catastrophic |
+| 5 | **Magma Ink** | 🟢 Moderate Bull | **LONG** | Merger synergy + limited edition sold out — demand spike, but narrower market |
+| 6 | **Scoria Paste** | 🟡 Weak Bull | NEUTRAL/Skip | Influencer-driven (Lava D. Ray) — unreliable, potential pump |
+| 7 | **Ashes of the Phoenix** | 🔴 Moderate Bear | **SHORT** | Sourcing scandal, credibility hit — reputational damage |
+| 8 | **Volcanic Incense** | 🟡 Weak Bull | NEUTRAL/Skip | Pure momentum, tied to influencer appearances — timing risk, no fundamentals |
+| 9 | **Sulfur Reactor** | 🟢 Strong Bull | **LONG** | Index 118 inclusion confirmed — forced buying from index-tracking funds |
+
+### Signal Quality Ranking
+
+**Strongest Conviction (Fundamental, Structural):**
+1. **Thermalite Core** — Demand surge is quantified and forecasted
+2. **Sulfur Reactor** — Index inclusion = guaranteed forced buying
+3. **Obsidian Cutlery** — Production halt is definitive
+4. **Pyroflex Cells** — Tax policy change is concrete
+5. **Lava Cake** — Health/safety crisis is severe
+
+**Weaker/Convoluted:**
+- Scoria Paste (influencer pump — could reverse)
+- Volcanic Incense (momentum without fundamentals — could crash)
+
+### Optimal Strategy
+
+**Core Principle:** Spread budget across **5-6 high-conviction positions** rather than concentrating. Avoid the influencer-driven signals (Scoria Paste, Volcanic Incense) due to high reversal risk and opportunity cost.
+
+#### Recommended Allocation
+
+| Product | Direction | Allocation | Rationale |
+|---------|-----------|------------|-----------|
+| **Thermalite Core** | LONG | 20% | Strongest fundamental bull case, quantified demand surge |
+| **Sulfur Reactor** | LONG | 20% | Index inclusion = structural buying pressure |
+| **Obsidian Cutlery** | SHORT | 15% | Production halt = supply shock, definitive negative |
+| **Pyroflex Cells** | SHORT | 15% | Tax doubling = direct earnings hit |
+| **Lava Cake** | SHORT | 15% | Health crisis + lawsuits = severe downside |
+| **Magma Ink** | LONG | 10% | Merger + sold out, but narrower than Thermalite/Sulfur |
+| **Ashes of the Phoenix** | SHORT | 5% | Scandal is bad but less severe than others |
+| Scoria Paste | — | 0% | Skip — influencer risk too high |
+| Volcanic Incense | — | 0% | Skip — pure momentum, no fundamentals |
+
+**Total: 100%**
+
+### Why This Allocation?
+
+1. **Balanced long/short exposure** (~50/50) — reduces directional market risk
+2. **Avoids the fee trap** — no single position exceeds 20%, keeping quadratic fees manageable
+3. **Prioritizes fundamental over narrative** — Thermalite and Sulfur have concrete, quantifiable catalysts; Pyroflex and Obsidian have definitive negative catalysts
+4. **Omits the two weakest signals** — Scoria Paste and Volcanic Incense are momentum/influencer plays that could reverse violently; better to allocate that budget to higher-conviction trades
+
+### Key Risk Considerations
+
+- **Fee drag is the silent killer** — if the formula is indeed quadratic, concentrating 40% in one position could generate fees that erase profits. The 20% cap on any single position keeps fees in check.
+- **Unused budget expires worthless** — you must deploy close to 100% to maximize expected return.
+- **Short positions consume budget just like longs** — only short the highest-conviction negative signals.
+
+### Final Recommendation
+
+**Deploy 100% across 7 positions** as outlined above. The strongest edge comes from:
+- **Thermalite Core** (structural demand growth)
+- **Sulfur Reactor** (forced index buying)
+- **Obsidian Cutlery + Pyroflex Cells + Lava Cake** (definitive negative catalysts)
+
+Skip Scoria Paste and Volcanic Incense entirely — the risk of narrative reversal isn't worth the fee budget they would consume.

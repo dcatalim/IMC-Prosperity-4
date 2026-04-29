@@ -1,0 +1,6 @@
+strategy,day2_pnl,day3_pnl,day4_pnl,total_pnl,worst_day_pnl,worst_day,worst_max_drawdown,total_volume,total_trades,max_state_chars,max_abs_position
+old_v2_5_reference,129674.5,135129.0,84366.0,349169.5,84366.0,4,-21160.0,19134,3406,19871,10
+active_vx,131881.0,136994.0,84432.0,353307.0,84432.0,4,-20327.5,19311,3467,20343,10
+codex_relative_base,207570.0,213000.0,189090.0,609660.0,189090.0,4,-60305.0,1320,175,0,10
+relative_strength_v2,234665.0,218860.0,162195.0,615720.0,162195.0,4,-48640.0,1050,142,0,10
+group_individual_strategies,223467.5,187047.0,177964.0,588478.5,177964.0,4,-48820.0,5716,1532,9980,10

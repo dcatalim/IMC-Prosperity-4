@@ -1,0 +1,33 @@
+Yes — I’d make a modest change after reading the full news image.
+
+The biggest changes: increase Lava Cake, increase Sulfur, increase Scoria/Volcanic slightly, and cut Magma Ink + Ashes. The full articles make Lava Cake look more severe than the summary, while Ashes looks more reputational/ambiguous than catastrophic. The confirmed fee formula still favors spreading because fee is (volume / 1000)^2.
+
+Updated allocation
+Good	Action	Allocation
+Thermalite Core	Buy	17%
+Sulfur Reactor	Buy	16%
+Lava Cake	Sell	15%
+Pyroflex Cells	Sell	13%
+Obsidian Cutlery	Sell	12%
+Magma Ink	Buy	8%
+Scoria Paste	Buy	7%
+Volcanic Incense	Buy	7%
+Ashes of the Phoenix	Sell	5%
+
+Total: 100%
+
+Why I changed it
+
+Lava Cake up to 15%: The full article says sales halted, health review, lawsuits, and vendors returning stock. That is one of the cleanest bearish trades.
+
+Sulfur up to 16%: Index inclusion means forced buying before rebalance. Very clean, mechanical catalyst.
+
+Magma Ink down to 8%: The pen sold out, but it is still a limited-edition hype product. Bullish, but less structural than Thermalite or Sulfur.
+
+Scoria Paste up to 7%: The full text makes it sound more economically relevant than just an influencer pump, because Scoria Paste is tied to daily maintenance and infrastructure upkeep. Still risky, but no longer tiny.
+
+Volcanic Incense up to 7%: The article mentions actual accelerated buying in narrow windows. It is still momentum-only, but the momentum is real.
+
+Ashes down to 5%: Public concern is bearish, but the article also gives the company a semi-plausible defense that phoenixes regenerate. It is a scandal trade, not a hard sales-ban trade.
+
+I’d submit the table above.

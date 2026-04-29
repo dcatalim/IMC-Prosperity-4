@@ -1,0 +1,805 @@
+markdown
+# IMC Prosperity 4 — Complete Reference
+
+## Competition Overview
+
+IMC Prosperity 4 is a 5-round trading challenge (April 14–30, 2026) set in deep space. Each round introduces new tradable products and consists of:
+- **1 algorithmic challenge**: upload a Python `Trader` class
+- **1 manual challenge**: submit answers directly into the platform
+
+Algorithmic and manual results are **independent** — they don't affect each other. Currency is **XIRECs**.
+
+### Schedule
+| Phase | Dates |
+|---|---|
+| Tutorial Round | March 16 – April 13 |
+| Round 1 | April 14–17 |
+| Round 2 | April 17–20 |
+| Intermission | April 20–24 |
+| Round 3 | April 24–26 |
+| Round 4 | April 26–28 |
+| Round 5 | April 28–30 |
+
+### Prizes
+| Rank | Prize |
+|---|---|
+| 1st overall | $25,000 |
+| 2nd overall | $10,000 |
+| 3rd overall | $5,000 |
+| 4th overall | $3,500 |
+| 5th overall | $1,500 |
+| Manual trading winner | $5,000 |
+
+---
+
+## Round 3 — "Gloves Off"
+
+**Theme:** Great Orbital Ascension Trials (GOAT). Leaderboard resets to zero PnL at the start of Round 3.
+
+### Algorithmic Products
+
+| Product | Symbol | Position Limit |
+|---|---|---|
+| Hydrogel Packs | `HYDROGEL_PACK` | 200 |
+| Velvetfruit Extract | `VELVETFRUIT_EXTRACT` | 200 |
+| Velvetfruit Extract Vouchers (10 strikes) | `VEV_4000`, `VEV_4500`, `VEV_5000`, `VEV_5100`, `VEV_5200`, `VEV_5300`, `VEV_5400`, `VEV_5500`, `VEV_6000`, `VEV_6500` | 300 each |
+
+`HYDROGEL_PACK` and `VELVETFRUIT_EXTRACT` are standard delta-1 products. The 10 `VEV_*` products are **European call options** on `VELVETFRUIT_EXTRACT`.
+
+**Options time-to-expiry (TTE):**
+- Options expire after 7 days total (1 day per round)
+- TTE = 5 days at the start of Round 3's final simulation
+- Historical data TTE alignment: Day 0 → TTE=8d, Day 1 → TTE=7d, Day 2 → TTE=6d
+
+### Manual Challenge — "The Celestial Gardeners' Guild"
+
+Trade with secret counterparties who each have a **reserve price** uniformly distributed between **670 and 920** at **increments of 5** (inclusive). You sell acquired Bio-Pods at a fair price of **920** after the round.
+
+**Rules:**
+- Submit **two bids** (b1, b2)
+- If `b1 > reserve_price`: trade at b1
+- If `b2 > reserve_price` AND `b2 > avg_b2` (mean of all players' second bids): trade at b2
+- If `b2 > reserve_price` AND `b2 <= avg_b2`: trade at b2, but PnL is penalised by:
+
+$$\left(\frac{920 - \text{avg\_b2}}{920 - b2}\right)^3$$
+
+**Profit per unit = 920 − bid**. To maximise: set b1 high (captures low-reserve sellers cheaply), set b2 competitively relative to expected avg_b2.
+
+---
+
+## Round 4 — "The More The Merrier" (Current Round)
+
+**Theme:** Great Orbital Ascension Trials (GOAT), second round. FTW (Frontier Trade Watch) has disclosed counterparty IDs in historical trade data.
+
+### Algorithmic Challenge — "Hello, I'm Mark"
+
+Same products as Round 3, but **counterparty information is now available** via `Trade.buyer` and `Trade.seller` fields (previously always `None`). Identify participants and exploit their behavioral patterns.
+
+**Updated Trade class:**
+
+```python
+class Trade:
+    def __init__(self, symbol: Symbol, price: int, quantity: int,
+                 buyer: UserId = None, seller: UserId = None, timestamp: int = 0) -> None:
+        self.symbol = symbol
+        self.price: int = price
+        self.quantity: int = quantity
+        self.buyer = buyer      # Now populated with participant name
+        self.seller = seller    # Now populated with participant name
+        self.timestamp = timestamp
+In market_trades, self.buyer and self.seller now hold actual participant IDs. In own_trades, your side is "SUBMISSION" and the counterparty field is populated. Use these to track each bot's behavior across iterations.
+
+Position Limits (unchanged from Round 3):
+
+Product	Position Limit
+HYDROGEL_PACK	200
+VELVETFRUIT_EXTRACT	200
+VEV_4000 – VEV_6500 (10 vouchers)	300 each
+Options TTE in Round 4: TTE = 4 days (e.g. VEV_5000 has TTE=4 days at start of Round 4).
+
+Manual Challenge — "Vanilla Just Isn't Exotic Enough"
+Trade AETHER_CRYSTAL (underlying) plus vanilla and exotic options. All products expire at end-of-round. You submit orders at t=0 and hold to expiry — no intra-round trading. This challenge is completely standalone (no relationship to Round 1 or algorithmic PnL).
+
+Scoring: Average PnL across 100 simulations. PnL is marked to 'fair' value (average of 100 simulations) at expiry. Contract size = 3000 (PnL multiplier — applies uniformly to all products).
+
+Underlying Simulation
+AETHER_CRYSTAL follows Geometric Brownian Motion (GBM):
+
+Drift: zero (risk-neutral)
+
+Volatility: 251% annualized
+
+Time grid: 4 steps per trading day, 252 trading days/year
+
+python
+TRADING_DAYS_PER_YEAR = 252
+STEPS_PER_DAY = 4
+STEPS_PER_YEAR = TRADING_DAYS_PER_YEAR * STEPS_PER_DAY  # = 1008
+
+def weeks_to_years(weeks: float) -> float:
+    return (weeks * 5) / TRADING_DAYS_PER_YEAR
+
+def steps_for_weeks(weeks: float) -> int:
+    return int(round(weeks * 5 * STEPS_PER_DAY))
+# "2 weeks" = 10 trading days = 40 steps
+# "3 weeks" = 15 trading days = 60 steps
+Important: Knock-out barriers are checked only at discrete grid points (4/day) — no continuous monitoring.
+
+Available Products
+Product	Type	Expiry	Key Parameter	Notes
+AETHER_CRYSTAL	Underlying	—	—	Buy or sell directly
+Vanilla Call 2W	European call	2 weeks (10 days, 40 steps)	Strike TBD	Standard BSM payoff
+Vanilla Put 2W	European put	2 weeks	Strike TBD	Standard BSM payoff
+Vanilla Call 3W	European call	3 weeks (15 days, 60 steps)	Strike TBD	Standard BSM payoff
+Vanilla Put 3W	European put	3 weeks	Strike TBD	Standard BSM payoff
+Chooser Option	Exotic	3 weeks	—	After 2 weeks, buyer chooses call or put (whichever ITM); behaves as standard option for final week
+Binary Put	Exotic	TBD	Strike + payout amount	Pays fixed amount if S < K at expiry; otherwise 0
+Knock-Out Put	Exotic	TBD	Strike + barrier	Behaves as put UNLESS underlying ever hits barrier before expiry (discrete check); then becomes worthless
+Exotic Options Detail
+Chooser Option:
+
+Expires in 3 weeks
+
+At the 2-week mark, the buyer selects whether it becomes a call or put — whichever is currently in-the-money
+
+For the final week, it behaves as a standard vanilla option
+
+Value at choice date: max(C(S, K, T=1W), P(S, K, T=1W))
+
+Binary Put Option:
+
+All-or-nothing payoff
+
+Pays a fixed specified amount if S < K at expiry
+
+Expires worthless if S ≥ K at expiry
+
+Value: payout × N(-d2) under BSM (risk-neutral drift = 0)
+
+Knock-Out Put Option:
+
+Standard put payoff unless the barrier is breached
+
+If the underlying trades below the knock-out barrier at any discrete grid point before expiry → option immediately becomes worthless
+
+Barrier is checked discretely (not continuously); only grid points matter
+
+Risk Management Notes
+Unhedged exposure can lead to large losses — manage delta and vega across positions
+
+The price column in the order submission interface is cosmetic only — ignore it for trading decisions
+
+You may buy or sell up to the displayed volume in each product
+
+PnL = (fair value at expiry − entry price) × quantity × contract size (3000)
+
+Live Market Data (Round 4 Snapshot)
+AETHER_CRYSTAL spot: ~50.0 XIRECs (Bid: 49.975 / Ask: 50.025)
+
+Full Contracts Table
+Symbol	Type	Expiry	Strike	Barrier / Payout	Bid	Ask	Max Vol	Description
+AC	Underlying	N/A	—	—	49.975	50.025	200	AETHER_CRYSTAL spot
+AC_50_P	Vanilla Put	T+21 (3W)	50	—	12.00	12.05	50	Put, K=50, 21 Solvenarian days from Round 1
+AC_50_C	Vanilla Call	T+21 (3W)	50	—	12.00	12.05	50	Call, K=50, 21 Solvenarian days from Round 1
+AC_35_P	Vanilla Put	T+21 (3W)	35	—	4.33	4.35	50	Put, K=35
+AC_40_P	Vanilla Put	T+21 (3W)	40	—	6.50	6.55	50	Put, K=40
+AC_45_P	Vanilla Put	T+21 (3W)	45	—	9.05	9.10	50	Put, K=45
+AC_60_C	Vanilla Call	T+21 (3W)	60	—	8.80	8.85	50	Call, K=60
+AC_50_P_2	Vanilla Put	T+14 (2W)	50	—	9.70	9.75	50	Put, K=50, 2-week expiry
+AC_50_C_2	Vanilla Call	T+14 (2W)	50	—	9.70	9.75	50	Call, K=50, 2-week expiry
+AC_50_CO	Chooser	T+14/21	50	—	22.20	22.30	50	Choose call/put at T+14; expires T+21
+AC_40_BP	Binary Put	T+21 (3W)	40	Pays 10 XIRECs	5.00	5.10	50	If AC < 40 at expiry, pays 10; else 0
+AC_45_KO	Knock-Out Put	T+21 (3W)	45	Barrier = 35	0.150	0.175	500	Put K=45; knocked out (worthless) if AC ever falls below 35 (discrete check)
+Note: The price column shown in the platform is cosmetic — ignore it for trading decisions. T+N refers to Solvenarian days from Round 1 start.
+
+Key Observations from Market Data
+At-the-money (K=50): 3W put and call both priced at ~12.025 mid → put-call parity holds (same price for same K, T, with r=0 and S≈K)
+
+2W ATM options (K=50): ~9.725 mid — shorter tenor, lower premium as expected
+
+Chooser (AC_50_CO): mid ~22.25. Theoretical floor = Call(3W,K=50) + Put(2W,K=50) ≈ 12.025 + 9.725 = 21.75. Market is pricing slight premium above this floor (+~0.5)
+
+Binary Put (AC_40_BP): pays 10 if S<40 at T+21. Mid ~5.05 → implies ~50.5% probability of finishing below 40 in market price (risk-neutral probability = bid_price / payout)
+
+Knock-Out Put (AC_45_KO): Strike=45, barrier=35, very cheap at ~0.1625 mid — reflects high probability of knockout given σ=251%
+
+OTM puts at 3W: AC_35_P (4.34), AC_40_P (6.525), AC_45_P (9.075) — confirm downside skew/convexity typical of high-vol underlyings
+
+Algorithm Architecture
+Simulation Mechanics
+run() is called once per iteration (1,000 iterations during testing, 10,000 for final scoring)
+
+Each iteration receives a TradingState snapshot of the market
+
+Orders sent that cross the book execute immediately (no latency)
+
+Orders that don't fill are visible to bots; if no bot trades on them, they are cancelled at end of iteration
+
+State is stateless between iterations (AWS Lambda) — use traderData string to persist data (max 50,000 chars, use jsonpickle)
+
+Trader Class Interface
+python
+from datamodel import OrderDepth, UserId, TradingState, Order
+from typing import List
+
+class Trader:
+
+    def bid(self):
+        # Only used in Round 2's algorithmic auction. Safe to include in all rounds (ignored otherwise).
+        return 15
+
+    def run(self, state: TradingState):
+        result = {}  # Dict[product_name -> List[Order]]
+
+        for product in state.order_depths:
+            orders: List[Order] = []
+            order_depth: OrderDepth = state.order_depths[product]
+
+            # Example: take best ask if below fair value
+            if order_depth.sell_orders:
+                best_ask, best_ask_qty = list(order_depth.sell_orders.items())[0]
+                if best_ask < fair_value:
+                    orders.append(Order(product, best_ask, -best_ask_qty))  # buy
+
+            # Example: take best bid if above fair value
+            if order_depth.buy_orders:
+                best_bid, best_bid_qty = list(order_depth.buy_orders.items())[0]
+                if best_bid > fair_value:
+                    orders.append(Order(product, best_bid, -best_bid_qty))  # sell
+
+            result[product] = orders
+
+        traderData = "serialized_state_here"  # jsonpickle.encode(my_state_dict)
+        conversions = 0  # or int for conversion requests
+        return result, conversions, traderData
+Order Class
+python
+class Order:
+    def __init__(self, symbol: str, price: int, quantity: int):
+        ...
+quantity > 0 → BUY order
+
+quantity < 0 → SELL order
+
+price = limit price (max buy price / min sell price)
+
+Position Limits
+If aggregated buy (sell) orders in an iteration would exceed the long (short) position limit, all orders for that product are rejected.
+
+Example: position limit = 30, current position = -5 → max buy qty = 30 − (−5) = 35.
+
+TradingState Class
+python
+class TradingState:
+    traderData: str                              # Your serialized state from last iteration
+    timestamp: int                               # Current iteration timestamp
+    listings: Dict[str, Listing]                 # Product metadata
+    order_depths: Dict[str, OrderDepth]          # Current order book per product
+    own_trades: Dict[str, List[Trade]]           # Your trades since last iteration
+    market_trades: Dict[str, List[Trade]]        # Bot-to-bot trades since last iteration
+    position: Dict[str, int]                     # Your current position per product
+    observations: Observation                    # External signals (ConversionObservation, plain values)
+OrderDepth
+python
+class OrderDepth:
+    buy_orders: Dict[int, int]   # {price: qty}  — qty is positive
+    sell_orders: Dict[int, int]  # {price: qty}  — qty is NEGATIVE
+Example:
+
+buy_orders = {9: 5, 10: 4} → 5 units bid at 9, 4 units bid at 10
+
+sell_orders = {12: -3, 11: -2} → 3 units offered at 12, 2 at 11
+
+Iterate sorted: sorted(order_depth.sell_orders.items()) (ascending) for asks, sorted(order_depth.buy_orders.items(), reverse=True) for bids.
+
+Trade
+python
+class Trade:
+    symbol: str
+    price: int
+    quantity: int
+    buyer: str    # "SUBMISSION" if you bought, else participant name (Round 4+) or "" (Rounds 1-3)
+    seller: str   # "SUBMISSION" if you sold, else participant name (Round 4+) or "" (Rounds 1-3)
+    timestamp: int
+Observation / ConversionObservation
+python
+class ConversionObservation:
+    bidPrice: float
+    askPrice: float
+    transportFees: float
+    exportTariff: float
+    importTariff: float
+    sunlightIndex: float  # (field name varies by product)
+    sugarPrice: float     # (field name varies by product)
+Used to price conversion requests. Return conversions: int from run() to convert a position. Rules:
+
+Must hold a position to convert
+
+Cannot request more than position size
+
+Costs transportFees + tariff on each conversion
+
+Order Matching Rules
+Price-time priority: best price filled first; ties broken by order age (oldest first)
+
+A BUY order fills against SELL orders at or below its price (executes at the SELL order's price)
+
+A SELL order fills against BUY orders at or above its price (executes at the BUY order's price)
+
+Partial fills leave a resting order; any unfilled resting player order is cancelled at end of iteration
+
+Key Implementation Patterns
+Persisting State with traderData
+python
+import jsonpickle
+
+def run(self, state: TradingState):
+    # Deserialize
+    if state.traderData:
+        saved = jsonpickle.decode(state.traderData)
+    else:
+        saved = {"ema": {}, "history": {}}
+
+    # ... trading logic ...
+    # Serialize (max 50,000 chars)
+    traderData = jsonpickle.encode(saved)
+    return result, 0, traderData
+Respecting Position Limits
+python
+position = state.position.get(product, 0)
+limit = 200  # product-specific
+buy_capacity = limit - position
+sell_capacity = limit + position  # limit - abs(position) when short
+
+# Never submit aggregated buys > buy_capacity or sells > sell_capacity
+Market Making Template
+python
+orders = []
+spread = 2
+fair_value = compute_fair_value(order_depth)
+
+buy_capacity = limit - position
+sell_capacity = limit + position
+
+if buy_capacity > 0:
+    orders.append(Order(product, fair_value - spread, buy_capacity))
+if sell_capacity > 0:
+    orders.append(Order(product, fair_value + spread, -sell_capacity))
+Taking Liquidity (Momentum/Arbitrage)
+python
+orders = []
+for ask_price, ask_qty in sorted(order_depth.sell_orders.items()):
+    if ask_price < fair_value and buy_capacity > 0:
+        qty = min(-ask_qty, buy_capacity)
+        orders.append(Order(product, ask_price, qty))
+        buy_capacity -= qty
+
+for bid_price, bid_qty in sorted(order_depth.buy_orders.items(), reverse=True):
+    if bid_price > fair_value and sell_capacity > 0:
+        qty = min(bid_qty, sell_capacity)
+        orders.append(Order(product, bid_price, -qty))
+        sell_capacity -= qty
+Counterparty Tracking (Round 4+)
+python
+# Build per-bot price history from market_trades
+bot_history = saved.get("bot_history", {})  # {bot_id: [prices]}
+
+for trade in state.market_trades.get(product, []):
+    for participant in [trade.buyer, trade.seller]:
+        if participant and participant != "SUBMISSION":
+            if participant not in bot_history:
+                bot_history[participant] = []
+            bot_history[participant].append(trade.price)
+
+saved["bot_history"] = bot_history
+# Use bot_history to detect: aggressive takers, passive market makers,
+# mean-reversion bots, trend-followers, etc.
+Options Pricing Context (VEV Vouchers)
+The 10 VEV_* contracts are European call options on VELVETFRUIT_EXTRACT. Key inputs for Black-Scholes or binomial pricing:
+
+Parameter	Source
+Underlying price (S)	Mid-price of VELVETFRUIT_EXTRACT order book
+Strike (K)	Encoded in symbol name (e.g. VEV_5000 → K=5000)
+Time to expiry (T)	5 days in Round 3; 4 days in Round 4; decreases by 1 each round
+Risk-free rate (r)	Assume 0 or calibrate from data
+Volatility (σ)	Estimate from historical VELVETFRUIT_EXTRACT price data
+Delta of each option changes as S, T, and σ change. Track your net delta across all positions (underlying + all vouchers) to manage directional risk.
+
+Options Pricing Context (AETHER_CRYSTAL — Round 4 Manual)
+All Round 4 manual products are written on AETHER_CRYSTAL with GBM dynamics (σ=251%, r=0). Use risk-neutral pricing:
+
+Greek	Relevance
+Delta	Directional exposure from underlying and vanilla options; hedge with AETHER_CRYSTAL
+Vega	All long options are long vega at σ=251%; consider net vega across portfolio
+Theta	Decay cost; shorter-dated vanillas decay faster
+Chooser	Long vega play; value ≈ call + put − min(call, put) at choice date
+Binary Put	Negative delta near strike; no vega above strike
+Knock-Out Put	Lower premium than vanilla; loses value as S approaches barrier
+BSM formulas (r=0 drift):
+
+d1 = [ln(S/K) + 0.5·σ²·T] / (σ·√T)
+
+d2 = d1 − σ·√T
+
+Call = S·N(d1) − K·N(d2)
+
+Put = K·N(−d2) − S·N(−d1)
+
+Binary Put value = N(−d2) × payout
+
+Chooser value at t=0 = Call(T=3W) + Put(T=2W) [approximation using put-call parity at choice date]
+
+Technical Constraints
+Runtime per iteration: must respond in < 900ms (average target ≤ 100ms)
+
+Supported libraries: Python 3.12 stdlib + pandas, numpy, statistics, math, typing, jsonpickle
+
+No external libraries beyond the above
+
+traderData max size: 50,000 characters
+
+Submission ID: each upload generates a UUID + runID — keep these for Discord support queries
+
+Testing: 1,000 iterations on a sample day; final scoring uses 10,000 iterations on a different day
+
+Appendix A: Trader Class Example
+Full minimal working implementation — includes all required logic to send orders:
+
+python
+from datamodel import OrderDepth, UserId, TradingState, Order
+from typing import List
+import string
+
+class Trader:
+
+    def bid(self):
+        return 15
+
+    def run(self, state: TradingState):
+        print("traderData: " + state.traderData)
+        print("Observations: " + str(state.observations))
+
+        result = {}
+        for product in state.order_depths:
+            order_depth: OrderDepth = state.order_depths[product]
+            orders: List[Order] = []
+            acceptable_price = 10  # Calculate this per product
+
+            if len(order_depth.sell_orders) != 0:
+                best_ask, best_ask_amount = list(order_depth.sell_orders.items())[0]
+                if int(best_ask) < acceptable_price:
+                    orders.append(Order(product, best_ask, -best_ask_amount))
+
+            if len(order_depth.buy_orders) != 0:
+                best_bid, best_bid_amount = list(order_depth.buy_orders.items())[0]
+                if int(best_bid) > acceptable_price:
+                    orders.append(Order(product, best_bid, -best_bid_amount))
+
+            result[product] = orders
+
+        traderData = ""
+        conversions = 0
+        return result, conversions, traderData
+Appendix B: datamodel.py (Full Source)
+python
+import json
+from typing import Dict, List
+from json import JSONEncoder
+import jsonpickle
+
+Time = int
+Symbol = str
+Product = str
+Position = int
+UserId = str
+ObservationValue = int
+
+class Listing:
+    def __init__(self, symbol: Symbol, product: Product, denomination: Product):
+        self.symbol = symbol
+        self.product = product
+        self.denomination = denomination
+
+class ConversionObservation:
+    def __init__(self, bidPrice: float, askPrice: float, transportFees: float,
+                 exportTariff: float, importTariff: float, sunlight: float, humidity: float):
+        self.bidPrice = bidPrice
+        self.askPrice = askPrice
+        self.transportFees = transportFees
+        self.exportTariff = exportTariff
+        self.importTariff = importTariff
+        self.sugarPrice = sugarPrice        # Note: field name is sugarPrice in constructor
+        self.sunlightIndex = sunlightIndex  # Note: field name is sunlightIndex in constructor
+
+class Observation:
+    def __init__(self, plainValueObservations: Dict[Product, ObservationValue],
+                 conversionObservations: Dict[Product, ConversionObservation]) -> None:
+        self.plainValueObservations = plainValueObservations
+        self.conversionObservations = conversionObservations
+
+    def __str__(self) -> str:
+        return ("(plainValueObservations: " + jsonpickle.encode(self.plainValueObservations) +
+                ", conversionObservations: " + jsonpickle.encode(self.conversionObservations) + ")")
+
+class Order:
+    def __init__(self, symbol: Symbol, price: int, quantity: int) -> None:
+        self.symbol = symbol
+        self.price = price
+        self.quantity = quantity
+
+    def __str__(self) -> str:
+        return "(" + self.symbol + ", " + str(self.price) + ", " + str(self.quantity) + ")"
+
+    def __repr__(self) -> str:
+        return "(" + self.symbol + ", " + str(self.price) + ", " + str(self.quantity) + ")"
+
+class OrderDepth:
+    def __init__(self):
+        self.buy_orders: Dict[int, int] = {}
+        self.sell_orders: Dict[int, int] = {}
+
+class Trade:
+    def __init__(self, symbol: Symbol, price: int, quantity: int,
+                 buyer: UserId = None, seller: UserId = None, timestamp: int = 0) -> None:
+        self.symbol = symbol
+        self.price: int = price
+        self.quantity: int = quantity
+        self.buyer = buyer
+        self.seller = seller
+        self.timestamp = timestamp
+
+    def __str__(self) -> str:
+        return ("(" + self.symbol + ", " + self.buyer + " << " + self.seller +
+                ", " + str(self.price) + ", " + str(self.quantity) + ", " + str(self.timestamp) + ")")
+
+    def __repr__(self) -> str:
+        return ("(" + self.symbol + ", " + self.buyer + " << " + self.seller +
+                ", " + str(self.price) + ", " + str(self.quantity) + ", " + str(self.timestamp) + ")")
+
+class TradingState(object):
+    def __init__(self,
+                 traderData: str,
+                 timestamp: Time,
+                 listings: Dict[Symbol, Listing],
+                 order_depths: Dict[Symbol, OrderDepth],
+                 own_trades: Dict[Symbol, List[Trade]],
+                 market_trades: Dict[Symbol, List[Trade]],
+                 position: Dict[Product, Position],
+                 observations: Observation):
+        self.traderData = traderData
+        self.timestamp = timestamp
+        self.listings = listings
+        self.order_depths = order_depths
+        self.own_trades = own_trades
+        self.market_trades = market_trades
+        self.position = position
+        self.observations = observations
+
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True)
+
+class ProsperityEncoder(JSONEncoder):
+    def default(self, o):
+        return o.__dict__
+Appendix C: Supported Libraries
+All standard Python 3.12 stdlib is supported. Permitted external libraries:
+
+Library	Use
+pandas	DataFrames, time-series analysis
+numpy	Numerical computation, arrays
+statistics	Built-in statistics functions
+math	Math functions (log, sqrt, etc.)
+typing	Type hints
+jsonpickle	Serialize/deserialize traderData state
+No other external libraries are permitted.
+
+Trading Walkthrough Example
+Demonstrates two consecutive iterations for two products (PRODUCT1 limit=10, PRODUCT2 limit=20).
+
+Iteration 1 Setup
+text
+PRODUCT1 order book:
+  buy_orders  = {10: 7, 9: 5}
+  sell_orders = {11: -4, 12: -8}
+PRODUCT2 order book:
+  buy_orders  = {142: 3, 141: 5}
+  sell_orders = {144: -5, 145: -8}
+position = {PRODUCT1: 3, PRODUCT2: -5}
+market_trades = {PRODUCT1: [Trade(price=11, qty=4, buyer="", seller="", ts=900)]}
+Algorithm convictions: PRODUCT1 FV=13, PRODUCT2 FV=142
+
+Orders sent:
+
+Order("PRODUCT1", 12, 7) — both sell levels (11, 12) are below FV=13; capacity = 10−3 = 7
+
+Order("PRODUCT2", 143, -5) — no mispriced orders vs FV=142; post passive sell above mid to attract bots
+
+Iteration 2 Result
+text
+own_trades = {
+  PRODUCT1: [Trade(price=11, qty=4, buyer="SUBMISSION"),
+             Trade(price=12, qty=3, buyer="SUBMISSION")],
+  PRODUCT2: [Trade(price=143, qty=2, seller="SUBMISSION")]
+}
+position = {PRODUCT1: 10, PRODUCT2: -7}
+PRODUCT1 sell_orders = {12: -5, 13: -3}  # qty at 12 reduced by 3
+Key observations:
+
+PRODUCT1 buy swept full qty=4 at price 11, then 3 of 8 at price 12 (total filled=7). Position 3+7=10 ✓
+
+PRODUCT2 sell at 143: a bot sent buy qty=2 → filled. Remaining qty=3 auto-cancelled (no further bot interest). Position −5−2=−7 ✓
+
+Order execution is instantaneous — no latency vs bots; your orders always arrive simultaneously with bots
+
+Bots may trade each other after your unfilled orders are cancelled but before next iteration's TradingState
+
+Round 5 — "The Final Stretch" (Final Round)
+Theme: 50 new tradable goods replace all previous algorithmic products. Leaderboard continues from Round 4. This is the final scoring round.
+
+Algorithmic Challenge Interface (Screenshot Details)
+The following information is taken directly from the Round 5 algorithmic challenge interface:
+
+text
+# ALGORITHMIC CHALLENGE
+
+## BRIEF
+The FTW introduced 50 new tradable goods to replace the previous ones. Fortunately, they have been categorized to provide a clear overview. Find the ones you can build a profitable strategy around and create a final Python program with them.
+
+---
+
+# ALGORITHM STATUS
+
+- **STATUS**  
+  N/A  
+  OPEN CHALLENGE  
+
+---
+
+# DATA CAPSULE
+
+This Data Capsule contains historical performance data for all available tradable goods.  
+Download the data file to analyze the performance history of all available tradable goods.
+
+---
+
+### TEA
+- GALAXY SOUNDS RECORDINGS  
+- VERTICAL SLEEPING PODS  
+
+---
+
+### TEA
+- ORGANIC MICROCHIP MODULES  
+- PURIFICATION PEEBLES  
+
+---
+
+### TEA
+- DOMESTIC ROBOTICS  
+- UV-VISORS  
+
+---
+
+### TEA
+- INSTANT TRANSLATORS  
+- CONSTRUCTION PANELS  
+
+---
+
+### TEA
+- LIQUID BREATH OXYGEN SHAKES  
+- PROTEIN SNACK PACKS  
+
+---
+
+DOWNLOAD DATA CAPSULE
+
+---
+
+# A.R.I.A. UPLINK
+
+Review the [A.R.I.A. Uplink](https://www.ariana.com) from the current round  
+This A.R.I.A. Uplink contains all the basic information needed to start working on your strategy and Python program.
+Note: The "TEA" headings are as shown in the original interface and likely represent category groupings. The A.R.I.A. Uplink URL is reproduced as given.
+
+Algorithmic Challenge — "Cherry Picking Winners"
+50 new products across 10 categories. All previous products (HYDROGEL_PACK, VELVETFRUIT_EXTRACT, VEV_*, etc.) are no longer tradable.
+
+Universal position limit: 10 for every product.
+
+The advisor's core message:
+
+Evaluate at the cluster level first — 50 individual products is intractable; 10 groups is manageable
+
+Within each cluster, look for structural similarities (products moving together) and divergences (predictable separation)
+
+Identify leading/lagging relationships across and within categories — one product may consistently move before another with a measurable, stable delay
+
+A confirmed timing gap is a forcing move: position in the lagger before it moves, using the leader as your signal
+
+Similarity ≠ simultaneity: same behavior, different timeline → measure the gap, track its stability across rounds
+
+Product List by Category
+Category	Products
+Galaxy Sounds Recorders	GALAXY_SOUNDS_DARK_MATTER, GALAXY_SOUNDS_BLACK_HOLES, GALAXY_SOUNDS_PLANETARY_RINGS, GALAXY_SOUNDS_SOLAR_WINDS, GALAXY_SOUNDS_SOLAR_FLAMES
+Vertical Sleeping Pods	SLEEP_POD_SUEDE, SLEEP_POD_LAMB_WOOL, SLEEP_POD_POLYESTER, SLEEP_POD_NYLON, SLEEP_POD_COTTON
+Organic Microchips	MICROCHIP_CIRCLE, MICROCHIP_OVAL, MICROCHIP_SQUARE, MICROCHIP_RECTANGLE, MICROCHIP_TRIANGLE
+Purification Pebbles	PEBBLES_XS, PEBBLES_S, PEBBLES_M, PEBBLES_L, PEBBLES_XL
+Domestic Robots	ROBOT_VACUUMING, ROBOT_MOPPING, ROBOT_DISHES, ROBOT_LAUNDRY, ROBOT_IRONING
+UV-Visors	UV_VISOR_YELLOW, UV_VISOR_AMBER, UV_VISOR_ORANGE, UV_VISOR_RED, UV_VISOR_MAGENTA
+Instant Translators	TRANSLATOR_SPACE_GRAY, TRANSLATOR_ASTRO_BLACK, TRANSLATOR_ECLIPSE_CHARCOAL, TRANSLATOR_GRAPHITE_MIST, TRANSLATOR_VOID_BLUE
+Construction Panels	PANEL_1X2, PANEL_2X2, PANEL_1X4, PANEL_2X4, PANEL_4X4
+Liquid Breath Oxygen Shakes	OXYGEN_SHAKE_MORNING_BREATH, OXYGEN_SHAKE_EVENING_BREATH, OXYGEN_SHAKE_MINT, OXYGEN_SHAKE_CHOCOLATE, OXYGEN_SHAKE_GARLIC
+Protein Snack Packs	SNACKPACK_CHOCOLATE, SNACKPACK_VANILLA, SNACKPACK_PISTACHIO, SNACKPACK_STRAWBERRY, SNACKPACK_RASPBERRY
+Advisor Strategy Framework
+Cluster filtering first: rank the 10 categories by profitability/signal quality from sample data; discard noise clusters early
+
+Within-cluster structure: for strong clusters, test whether products are co-integrated (mean-reverting spread), trending together, or size-tiered (XS→XL, 1X2→4X4 panel scaling)
+
+Cross-product lead-lag: measure cross-correlation with lag offsets; if product A consistently leads product B by N steps, use A as a predictive signal for B
+
+Stable relationships only: a cross-correlation that holds across multiple data days is a reliable input; one that shifts is a tracked variable, not an assumption
+
+Position limit awareness: all limits are 10 — very tight. Market-making and stat-arb strategies need to account for this; momentum strategies must enter/exit cleanly
+
+Manual Challenge — "Extra! Extra! Read All About It!"
+Platform: Ignith exchange, one-day access only. Trade 9 Ignith goods using Ashflow Alpha news signals.
+
+Budget: 1,000,000 XIRECs (use ≤ 100%; unused budget expires worthless, not added to profit)
+
+Fee formula:
+
+⚠️ IMPORTANT — confirmed from platform spreadsheet (=(B7/1000)^2):
+
+text
+fee_per_product = (volume_allocated_to_product / 1000) ** 2
+Where volume_allocated_to_product is in XIRECs. This is a pure quadratic in volume — no other variables.
+
+Verified examples (from platform):
+
+Volume (XIRECs)	Fee
+10,000	100
+20,000	400
+50,000	2,500
+100,000	10,000
+200,000	40,000
+Key implication: fee doubles in cost for every √2 × increase in volume per product. Concentrating 100,000 into one product costs the same total fee (10,000) as splitting into ten 10,000-unit positions (10 × 100 = 1,000). Always spread budget — concentration is quadratically punished.
+
+Total fee = Σ (volume_i / 1000)² across all products you trade.
+
+Net PnL = Σ [volume_i × expected_return_i] − Σ [(volume_i / 1000)²]
+
+The more you concentrate in a single good, the more expensive it becomes. Diversify to minimize fee drag.
+
+Ashflow Alpha — Round 5 News Signals
+Source: Ashflow Alpha ("Where Markets Ignite") — Ignith planet's primary market information outlet
+
+Headline	Company / Product	Signal	Direction
+Crowds Line Up for Limited-Edition Lava Fountain Pen	Stip Stationery Enterprises + Splatter Inc. (merger)	First release of merged-company product; 6hr queues; "hot drop" framing → demand spike	🟢 Bullish — Lava Fountain Pen / Magma Ink
+Manufacturing Halted After Obsidian Cutlery Cuts Through Its Own Assembly Line	Obsidian Cutlery	Production suspended, facility evacuated, level-1 contamination protocols	🔴 Bearish — Obsidian Cutlery
+Ignith Tax Authority: Abrupt End to Pyroflex Cell Tax Cut	Pyroflex Cell industry	50% PCTC cut abolished effective tomorrow → doubles current tax levy; disrupts upgrade cycles, slows new purchases	🔴 Bearish — Pyroflex Cells
+Quarterly Forecast: Surge in Thermalite-Powered Smart Home Devices	Thermalite Cores	Units rising 1.42M → 3.89M next quarter; avg net activity 16h 42min/day; analysts speculate very strong Q	🟢 Bullish — Thermalite Cores
+Resurfaced Video of Ashes of the Phoenix Origin Shocks Public	Eternal Feathers Ltd. (Forever Feathers product)	Video shows phoenix harvesting method; public concern escalating; company tries to reassure but credibility under pressure	🔴 Bearish — Ashes of the Phoenix
+Lava D. Ray Urges Stockpiling of Scoria Paste	Scoria Paste	Influencer (BrewTube Live, self-proclaimed market analyst) calls it "keep it all together paste"; urges buying before it becomes unaffordable; essential household use	🟢 Bullish — Scoria Paste (caution: influencer-driven, assess authenticity)
+Traces of Actual Lava Found in Lava Cakes	Hot-shot Pastries Ltd.	Health authorities launched review; sales suspended; civil lawsuits; vendors returning stock	🔴 Bearish — Lava Cakes
+Sudden Surge in Volcanic Incense — Whiff Nostralico Calls to Follow His Lead	Volcanic Incense	Trading concentrated in narrow time windows coinciding with Nostralico's appearances; accelerating rally	🟡 Bullish but momentum-driven — Volcanic Incense (timing-sensitive)
+Index Committee Confirms Sulfur Ltd. for Elemental Index 118	Sulfur Ltd. (Sulfur Reactor)	Index inclusion confirmed; funds tracking index must adjust holdings → forced buying	🟢 Bullish — Sulfur / Sulfur Reactor
+Fee Strategy Notes
+Fee scales quadratically with volume per product — doubling volume more than doubles the fee
+
+Optimal allocation: spread budget across high-conviction bullish positions rather than concentrating
+
+Bearish positions consume budget just as bullish ones do — only take shorts on highest-conviction negative signals
+
+Strongest fundamental signals (not influencer-driven): Thermalite Cores (demand structural), Sulfur Ltd. (index inclusion = forced buying), Pyroflex Cell (tax policy = structural headwind)
+
+Weakest/riskiest: Scoria Paste (influencer narrative), Volcanic Incense (momentum-only, no fundamental catalyst disclosed)
+
+Useful Links
+Competition platform: https://prosperity.imc.com
+
+Wiki: https://imc-prosperity.notion.site/prosperity-4-wiki
+
+Discord: https://discord.gg/SABeB8uKxd
+
+Contact: prosperity@imc.com

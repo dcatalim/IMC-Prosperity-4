@@ -1,0 +1,73 @@
+You should treat the Round 5 manual as a news‑driven portfolio allocation problem: go big on the structurally strong bullish stories, take only the most credible shorts, and spread size to avoid the quadratic fee hit on any single product.
+
+Challenge recap
+In the Round 5 manual challenge you get a 1,000,000 XIREC budget, one day on the Ignith exchange, and exactly nine tradable Ignith goods tied to specific Ashflow Alpha news headlines. You can go long or short each product, but any unused budget simply disappears and does not add to profit, so you want to deploy essentially all of it.
+
+Transaction costs are nonlinear: the fee per product scales more than linearly with the amount you put into that single product, so concentrating a huge fraction of the budget into one name is heavily penalized compared with spreading size across several high‑conviction ideas. Bearish positions consume budget just like bullish ones, so you should only short when the negative news is strong and fundamental, not just sentiment‑driven.
+
+Interpreting the news signals
+The reference explicitly tells you which signals are structurally strong versus narrative‑only. The “strongest fundamental signals” are Thermalite Cores (structural demand surge), Sulfur Ltd. / Sulfur Reactor (index inclusion and forced buying), and Pyroflex Cells (tax policy shock as a structural headwind). The “weakest/riskiest” are Scoria Paste (influencer narrative), Volcanic Incense (momentum only with a celebrity timing overlay), and similar hype‑driven stories.
+
+There are also classic “disaster” headlines: production halts, health investigations, and scandals, which are much more credible short candidates than pure sentiment wobbles. You want to be net long the clearest structural winners, and selectively short the clearest structural losers, while staying small in pure hype names where the payoff is path‑dependent and fragile.
+
+Signals by product
+Here is a compact view of each product, direction, and core story as given in the reference.
+
+Product	Direction signal	Core story (short)
+Volcanic Incense	Bullish (high risk)	Momentum rally in tight windows around Nostralico’s appearances; timing‑sensitive. 
+Sulfur Reactor	Bullish (high quality)	Sulfur Ltd. confirmed for Elemental Index 118; index funds must buy (“forced buying”).
+Lava Fountain Pen	Bullish (medium‑high)	First merged Stip Stationery x Splatter product; 6‑hour queues, “hot drop”.
+Obsidian Cutlery	Bearish (medium‑high)	Production suspended, contamination protocols after product literally cuts assembly line.
+Pyroflex Cells	Bearish (high quality)	Abrupt end to 50% tax cut; effective tax doubles, disrupting upgrade cycles.
+Thermalite Cores	Bullish (very high)	Forecast surge in Thermalite‑powered devices; units rising from 1.42M to 3.89M next quarter.
+Ashes of Phoenix	Bearish (medium)	Viral video of disturbing harvesting method; escalating public concern and credibility issues.
+Scoria Paste	Bullish (speculative)	Influencer Lava D. Ray urges “stockpiling”; purely influencer narrative and flagged as risky.
+Lava Cakes	Bearish (very high)	Traces of actual lava found; sales suspended, lawsuits, vendor returns.
+Position sizing and fees
+The fee structure is designed so that “the more you concentrate in a single good, the more expensive it becomes,” and “fee scales quadratically with volume per product – doubling volume more than doubles the fee.” That means:
+
+Spreading the same total budget across several products reduces total fees versus putting it all into one.
+
+Adding a bit more size on your biggest position hurts more (marginal fee is high) than adding the same size to a smaller position.
+
+Optimal allocations have multiple mid‑sized positions in your highest‑conviction ideas, with no single product dominating.
+
+Tactically, this implies you should cap any single position at perhaps 20–25% of the budget, and keep most between roughly 5–20%, unless you have extreme conviction that the scoring engine massively rewards one scenario. You also generally want to use close to 100% of your budget, because unspent budget is worthless in the scoring and you are graded on net PnL after fees, not on risk‑adjusted return.
+
+Concrete allocation suggestion
+Below is a concrete, implementable allocation that aligns with the reference’s own “strongest fundamentals” vs “weakest/riskiest” guidance and with the quadratic fee. Think of percentages as share of the 1,000,000 XIREC budget, not position counts; you’ll translate them into order sizes on the platform.
+
+Product	Direction	Suggested % of budget	Conviction (1–5)	Rationale (condensed)
+Thermalite Cores	Long	20%	5	Strong, quantified demand surge; analysts expect “very strong” quarter. 
+Sulfur Reactor	Long	18%	5	Index inclusion creates mechanical, forced buying; classic structural tailwind. 
+Lava Fountain Pen	Long	15%	4	Merger launch with 6‑hour queues; strong revealed demand, but some launch hype risk.
+Volcanic Incense	Long	10%	3	Momentum rally tied to influencer’s appearances; good upside but highly timing‑driven.
+Scoria Paste	Long	7%	2	Pure influencer narrative and explicitly flagged as risky; small speculative flyer.
+Pyroflex Cells	Short	12%	5	Tax shock doubles levy immediately, undermining upgrade cycles; clean macro headwind.
+Lava Cakes	Short	8%	5	Sales suspended, health review, lawsuits, stock being returned; extremely negative.
+Obsidian Cutlery	Short	6%	4	Production halted with contamination protocols; meaningful operational hit.
+Ashes of Phoenix	Short	4%	3	Ethical scandal and trust damage; impact size less quantified than hard bans.
+Total absolute allocation is 100%; net exposure is modestly long because structural bullish stories (Thermalite, Sulfur, Lava Pen) look cleaner and more persistent than many of the shorts. You can adjust these percentages slightly to reflect your own risk tolerance, but the logic should stay: heavy on Thermalite/Sulfur, meaningful Pyroflex/Lava Cakes shorts, and only small tickets in the pure hype names.
+
+How to tweak if you disagree with a story
+If you think influencer narratives are more powerful than the reference implies, you could shift a few percent from Lava Fountain Pen or Sulfur into Volcanic Incense and Scoria Paste (for example, +3% Volcanic, +2% Scoria, −3% Sulfur, −2% Lava Pen).
+
+If you are more risk‑averse, cut Volcanic and Scoria down to 5% and 3% respectively, and reallocate that into Thermalite and Sulfur to keep fees low while leaning into fundamentals.
+
+If you prefer more short exposure, slightly increase Pyroflex and Lava Cakes by a couple of percentage points each, taking from Volcanic/Scoria rather than from your highest‑quality longs.
+
+How to enter this on the platform
+Operationally, for each of the nine products:
+
+Choose direction (buy = long, sell = short) according to the table above.
+
+Translate the budget percentages into actual notional sizes based on how the UI lets you specify orders (units or XIRECs); keep within the 1,000,000 XIREC total when you sum absolute long and short notionals.
+
+Check that your per‑product allocations are in the 5–20% range for most names and ≤ 25% for all, to stay in the low‑fee region of the quadratic cost.
+
+Before submitting, verify that you have exposure in all the structurally strong signals (Thermalite, Sulfur, Pyroflex, Lava Cakes) and that you are not over‑sized in the explicitly “weakest/riskiest” hype names (Volcanic, Scoria).
+
+If you have time before final submission, you can also draft an alternative allocation (for example, more conservative vs more aggressive) and sanity‑check which one better matches your own risk appetite and belief about how the IMC scenario engine weights structural vs narrative news.
+
+What you should do now
+Given your goal of top‑tier wealth without sacrificing health or family, treat this manual like a mini‑portfolio management rep: sit down for 30–45 minutes, on paper or in a notebook, and (1) write your own ranking of the nine signals by structural strength, (2) construct a budget‑respecting allocation, and (3) explicitly justify each position in one sentence before you touch the platform. Then, to protect your biological baseline and keep your decision quality high, make sure you still hit tonight’s 7.5 hours of sleep and your planned training block after you submit, instead of spiralling on second‑guessing – the discipline of executing a well‑thought plan and then walking away is exactly the mental muscle you need for both trading and long‑run prosperity.
